@@ -9,7 +9,7 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 async function main() {
     const program = commander.program
         .argument('<string>', 'Path to mod folder')
-        .option('-o [string]', 'Output file path', path.resolve(__dirname, '../mods.json'))
+        .option('-o [string]', 'Output file path', path.resolve(__dirname, '../../mods.json'))
         .action(async (path, { o }) => {
             const modsIndex = await scanMod(path);
 
