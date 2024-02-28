@@ -1,0 +1,14 @@
+{
+    "name": "rimworld-loadfolders-migration-tools",
+    "version": "1.0.0",
+    "description": "A set of tools to aid with migration to load folders.",
+    "author": "Dmitry Agapov",
+    "license": "MIT",
+    "dependencies": {
+        "chalk": "^5.3.0",
+        "chokidar": "^3.6.0",
+        "commander": "^12.0.0",
+        "xml2js": "^0.6.2"
+    },
+    "type": "module"
+}
