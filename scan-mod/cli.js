@@ -9,9 +9,10 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 async function main() {
     const program = commander.program
         .argument('<string>', 'Path to mod folder')
-        .option('-o [string]', 'Output file path', path.resolve(__dirname, '../../mods.json'))
-        .action(async (path, { o }) => {
-            const modsIndex = await scanMod(path);
+        .option('-o [string]', 'Output file path', path.resolve(__dirname, '../mods.json'))
+        .option('-s [string]', 'Directories to skip divided by ","')
+        .action(async (path, { o, s }) => {
+            const modsIndex = await scanMod(path, s.split(','));
 
             await writeModsIndex(modsIndex, o);
             console.log('Done!');
@@ -20,18 +21,21 @@ async function main() {
     await program.parseAsync();
 }
 
-async function scanMod(dir) {
+async function scanMod(dir, skipDirs) {
     dir = path.join(dir, 'Patches');
 
-    const dirContent = await fs.readdir(dir);
-    const result = {};
+    const dirContent = (await fs.readdir(dir)).filter(item => !skipDirs.includes(item));
+    const result = {
+        originalDirsOrder: dirContent,
+        dirs: {}
+    };
 
     console.log(`Scanning ${dirContent.length} directories`);
 
     for (const dirName of dirContent) {
         const modNames = await scanPatchSubdir(path.join(dir, dirName));
 
-        result[dirName] = modNames;
+        result.dirs[dirName] = modNames;
     }
 
     return result;

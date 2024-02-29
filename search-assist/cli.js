@@ -19,11 +19,11 @@ async function main() {
             'Path to RimWorld\'s Steam Workshop directory',
             'C:\\Program Files (x86)\\Steam\\steamapps\\workshop\\content\\294100'
         )
-        .argument('[string]', 'Mods index file', path.resolve(__dirname, '../../mods.json'))
+        .argument('[string]', 'Mods index file', path.resolve(__dirname, '../mods.json'))
         .option('-p [number]', 'Port', 8080)
         .action(async (steamWsDir, modsIndexFile, { p: port }) => {
             const modsIndex = JSON.parse(await fs.readFile(modsIndexFile));
-            const mods = new Set(Object.values(modsIndex).flat());
+            const mods = new Set(Object.values(modsIndex.dirs).flat());
             const htmlTemplate = await fs.readFile(
                 path.join(__dirname, 'template.html'),
                 { encoding: 'utf8' }
@@ -32,7 +32,7 @@ async function main() {
             const app = express();
 
             app.get('/', (req, res) => {
-                res.send(createHMTL(htmlTemplate, modsIndex, installedMods));
+                res.send(createHMTL(htmlTemplate, modsIndex.dirs, installedMods));
             });
 
             app.get('/stream', (req, res) => {
