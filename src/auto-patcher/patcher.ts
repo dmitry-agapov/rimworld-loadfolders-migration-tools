@@ -126,7 +126,7 @@ export function subtractIndent(elem: Element, amount = 0) {
         if (node.nodeValue) {
             node.nodeValue = node.nodeValue
                 .split('\n')
-                .map((value) => value.replace('\t'.repeat(amount), ''))
+                .map((value, i) => (i > 0 ? value.replace('\t'.repeat(amount), '') : value))
                 .join('\n');
         }
     });

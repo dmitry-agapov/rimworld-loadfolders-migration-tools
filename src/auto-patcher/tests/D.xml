@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- =========================================================================================== -->
+<!-- ================================= DO NOT FORMAT THIS FILE ================================= -->
+<!-- =========================================================================================== -->
 <Test description="Preserves original formatting.">
 	<Patch>
 
@@ -17,7 +20,7 @@
 					<li Class="PatchOp">
 						<!-- 
 							Comment -->
-						<foo> foo
+						<foo> 			foo
 							bar
 							baz </foo>
 					</li>
@@ -38,7 +41,7 @@
 		<Operation Class="PatchOp">
 			<!-- 
 				Comment -->
-			<foo> foo
+			<foo> 			foo
 				bar
 				baz </foo>
 		</Operation>
