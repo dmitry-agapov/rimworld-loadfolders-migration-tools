@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Test description="Unpacks multiple top patch operations.">
+
+	<Patch>
+
+		<Operation Class="PatchOperationFindMod">
+			<mods>
+				<li>Foo</li>
+			</mods>
+			<match Class="PatchOp_1">
+				foobar
+			</match>
+		</Operation>
+
+		<Operation Class="PatchOperationFindMod">
+			<mods>
+				<li>Foo</li>
+			</mods>
+			<match Class="PatchOp_2">
+				foobar
+			</match>
+		</Operation>
+
+		<Operation Class="PatchOperationFindMod">
+			<mods>
+				<li>Foo</li>
+			</mods>
+			<match Class="PatchOp_3">
+				foobar
+			</match>
+		</Operation>
+
+	</Patch>
+
+	<Patch>
+
+		<Operation Class="PatchOp_1">
+			foobar
+		</Operation>
+
+		<Operation Class="PatchOp_2">
+			foobar
+		</Operation>
+
+		<Operation Class="PatchOp_3">
+			foobar
+		</Operation>
+
+	</Patch>
+
+</Test>
