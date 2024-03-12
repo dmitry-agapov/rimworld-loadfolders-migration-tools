@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Test description="Preserves original formatting.">
+	<Patch>
+
+		<Operation Class="PatchOperationFindMod">
+			<mods>
+				<li>Foo</li>
+			</mods>
+			<match Class="PatchOperationSequence">
+				<operations>
+
+					<!-- 
+						Comment
+							Comment
+						Comment
+					-->
+					<li Class="PatchOp">
+						<!-- 
+							Comment -->
+						<foo> foo
+							bar
+							baz </foo>
+					</li>
+
+				</operations>
+			</match>
+		</Operation>
+
+	</Patch>
+
+	<Patch>
+
+		<!-- 
+			Comment
+				Comment
+			Comment
+		-->
+		<Operation Class="PatchOp">
+			<!-- 
+				Comment -->
+			<foo> foo
+				bar
+				baz </foo>
+		</Operation>
+
+	</Patch>
+</Test>

@@ -10,11 +10,19 @@ async function main() {
     const program = commander.program
         .argument(
             '[string]',
-            'Path to RimWorld\'s Steam Workshop directory',
-            'C:\\Program Files (x86)\\Steam\\steamapps\\workshop\\content\\294100'
+            "Path to RimWorld's Steam Workshop directory",
+            'C:\\Program Files (x86)\\Steam\\steamapps\\workshop\\content\\294100',
         )
-        .argument('[string]', 'Mods index file', path.resolve(__dirname, '../mods.json'))
-        .option('-o [string]', 'Output file path', path.resolve(__dirname, '../LoadFoldres.xml'))
+        .argument(
+            '[string]',
+            'Mods index file',
+            path.resolve(__dirname, '../mods.json'),
+        )
+        .option(
+            '-o [string]',
+            'Output file path',
+            path.resolve(__dirname, '../LoadFoldres.xml'),
+        )
         .action(async (steamWsDir, modsIndexFile, { o }) => {
             const modsIndex = JSON.parse(await fs.readFile(modsIndexFile));
             const installedMods = {
@@ -29,7 +37,7 @@ async function main() {
                 const patchedModsNames = modsIndex.dirs[dirName];
                 const packageIds = [];
 
-                patchedModsNames.forEach(item => {
+                patchedModsNames.forEach((item) => {
                     if (installedMods[item] !== undefined) {
                         packageIds.push(installedMods[item]);
                     }
@@ -39,21 +47,26 @@ async function main() {
                     patchedModsNames.length === packageIds.length &&
                     patchedModsNames.length !== 0
                 ) {
-                    result.push(`<li IfModActive="${packageIds.join(', ')}">ModPatches/${dirName}</li>`);
+                    result.push(
+                        `<li IfModActive="${packageIds.join(', ')}">ModPatches/${dirName}</li>`,
+                    );
                 } else {
-                    let commentLines = patchedModsNames.map(item => `${item} - ${installedMods[item] || '[packageId is missing]'}`);
+                    let commentLines = patchedModsNames.map(
+                        (item) =>
+                            `${item} - ${installedMods[item] || '[packageId is missing]'}`,
+                    );
 
                     if (commentLines.length > 1) {
-                        commentLines = commentLines.map(item => '	' + item);
+                        commentLines = commentLines.map((item) => '	' + item);
                     }
 
                     const commentContent = commentLines.join('\n');
-                    const comment = commentLines.length > 1 ? `<!--\n${commentContent}\n-->` : `<!-- ${commentContent} -->`;
+                    const comment =
+                        commentLines.length > 1
+                            ? `<!--\n${commentContent}\n-->`
+                            : `<!-- ${commentContent} -->`;
 
-                    result.push(
-                        comment,
-                        `<li>ModPatches/${dirName}</li>`
-                    );
+                    result.push(comment, `<li>ModPatches/${dirName}</li>`);
                 }
             }
 
@@ -70,7 +83,9 @@ async function scanInstalledMods(dir) {
     console.log(`Scanning ${dirContent.length} directories`);
 
     for (const dirName of dirContent) {
-        const { name, packageId } = await getModMetaData(path.join(dir, dirName, 'About/About.xml'));
+        const { name, packageId } = await getModMetaData(
+            path.join(dir, dirName, 'About/About.xml'),
+        );
 
         if (name !== undefined && packageId !== undefined) {
             result[name.trim()] = packageId;

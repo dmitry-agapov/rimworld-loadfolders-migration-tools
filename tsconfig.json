@@ -1,0 +1,23 @@
+{
+    "include": ["./src/**/*.ts"],
+    "compilerOptions": {
+        "rootDir": "./src",
+        "outDir": "./.tsc",
+        "target": "ESNext",
+        "lib": ["ESNext"],
+        "types": ["node"],
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "inlineSourceMap": true,
+        "skipLibCheck": true,
+        "importHelpers": true,
+        "strict": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noImplicitOverride": true,
+        "noImplicitReturns": true,
+        "noUncheckedIndexedAccess": true,
+        "noPropertyAccessFromIndexSignature": true,
+        "exactOptionalPropertyTypes": true
+    }
+}

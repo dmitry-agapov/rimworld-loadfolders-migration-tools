@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Test description="Does not unpacks nested 'PatchOperationFindMod'.">
+
+	<Patch>
+
+		<Operation Class="PatchOperationFindMod">
+			<mods>
+				<li>Foo</li>
+			</mods>
+			<match Class="PatchOperationFindMod">
+				<mods>
+					<li>Bar</li>
+				</mods>
+				<match Class='PatchOp'>
+					foobar
+				</match>
+			</match>
+		</Operation>
+
+	</Patch>
+
+	<Patch>
+
+		<Operation Class="PatchOperationFindMod">
+			<mods>
+				<li>Bar</li>
+			</mods>
+			<match Class="PatchOp">
+				foobar
+			</match>
+		</Operation>
+
+	</Patch>
+
+</Test>

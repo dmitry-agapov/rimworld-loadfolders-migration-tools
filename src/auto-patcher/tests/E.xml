@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Test description="Unpacks nested 'PatchOperationSequence'.">
+
+	<Patch>
+
+		<Operation Class="PatchOperationSequence">
+			<operations>
+
+				<li Class="PatchOp_1">
+					foobar
+				</li>
+
+				<li Class="PatchOperationFindMod">
+					<mods>
+						<li>Foo</li>
+					</mods>
+					<match Class="PatchOperationSequence">
+						<operations>
+
+							<li Class="PatchOperationSequence">
+								<operations>
+
+									<li Class="PatchOperationSequence">
+										<operations>
+
+											<li Class="PatchOp_2">
+												foobar
+											</li>
+
+										</operations>
+									</li>
+
+								</operations>
+							</li>
+
+							<li Class="PatchOp_3">
+								foobar
+							</li>
+
+						</operations>
+					</match>
+				</li>
+
+			</operations>
+		</Operation>
+
+	</Patch>
+
+	<Patch>
+
+		<Operation Class="PatchOp_1">
+			foobar
+		</Operation>
+
+		<Operation Class="PatchOp_2">
+			foobar
+		</Operation>
+
+		<Operation Class="PatchOp_3">
+			foobar
+		</Operation>
+
+	</Patch>
+
+</Test>

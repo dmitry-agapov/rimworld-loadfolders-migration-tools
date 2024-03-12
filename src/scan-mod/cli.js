@@ -9,7 +9,11 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 async function main() {
     const program = commander.program
         .argument('<string>', 'Path to mod folder')
-        .option('-o [string]', 'Output file path', path.resolve(__dirname, '../mods.json'))
+        .option(
+            '-o [string]',
+            'Output file path',
+            path.resolve(__dirname, '../mods.json'),
+        )
         .option('-s [string]', 'Directories to skip divided by ","')
         .action(async (path, { o, s }) => {
             const modsIndex = await scanMod(path, s.split(','));
@@ -24,10 +28,12 @@ async function main() {
 async function scanMod(dir, skipDirs) {
     dir = path.join(dir, 'Patches');
 
-    const dirContent = (await fs.readdir(dir)).filter(item => !skipDirs.includes(item));
+    const dirContent = (await fs.readdir(dir)).filter(
+        (item) => !skipDirs.includes(item),
+    );
     const result = {
         originalDirsOrder: dirContent,
-        dirs: {}
+        dirs: {},
     };
 
     console.log(`Scanning ${dirContent.length} directories`);
@@ -49,7 +55,7 @@ async function scanPatchSubdir(dir) {
         if (fileOrDir.toLowerCase().endsWith('.xml')) {
             const modNames = await scanPatchFile(path.join(dir, fileOrDir));
 
-            modNames.forEach(result.add, result)
+            modNames.forEach(result.add, result);
         }
     }
 
@@ -67,11 +73,13 @@ async function scanPatchFile(path) {
 
     for (const lvl1patchOp of obj.Patch.Operation) {
         if (lvl1patchOp['$'].Class === 'PatchOperationFindMod') {
-            lvl1patchOp.mods[0].li.forEach(item => result.add(item.trim()));
+            lvl1patchOp.mods[0].li.forEach((item) => result.add(item.trim()));
         } else if (lvl1patchOp['$'].Class === 'PatchOperationSequence') {
             for (const patchOp of lvl1patchOp.operations[0].li) {
                 if (patchOp['$'].Class === 'PatchOperationFindMod') {
-                    patchOp.mods[0].li.forEach(item => result.add(item.trim()));
+                    patchOp.mods[0].li.forEach((item) =>
+                        result.add(item.trim()),
+                    );
                 }
             }
         }
@@ -83,7 +91,11 @@ async function scanPatchFile(path) {
 async function writeModsIndex(content, outFile) {
     await fs.writeFile(
         outFile,
-        JSON.stringify(content, (_, value) => value instanceof Set ? [...value] : value, 2)
+        JSON.stringify(
+            content,
+            (_, value) => (value instanceof Set ? [...value] : value),
+            2,
+        ),
     );
 
     console.log(`Mods index file is located at ${outFile}`);

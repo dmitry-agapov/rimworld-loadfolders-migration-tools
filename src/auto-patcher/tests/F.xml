@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Test
+	description="Does not unpacks if '&lt;nomatch&gt;' encountered."
+	outputIsEqualToInput="true"
+>
+
+	<Patch>
+
+		<Operation Class="PatchOperationFindMod">
+			<mods>
+				<li>Foo</li>
+			</mods>
+			<match Class="PatchOp">
+				foobar
+			</match>
+			<nomatch Class="PatchOp">
+				foobar
+			</nomatch>
+		</Operation>
+
+	</Patch>
+
+</Test>
