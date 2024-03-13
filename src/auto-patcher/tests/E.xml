@@ -10,35 +10,41 @@
 					foobar
 				</li>
 
-				<li Class="PatchOperationFindMod">
-					<mods>
-						<li>Foo</li>
-					</mods>
-					<match Class="PatchOperationSequence">
-						<operations>
+				<li Class="PatchOperationSequence">
+					<operations>
 
-							<li Class="PatchOperationSequence">
+						<li Class="PatchOperationFindMod">
+							<mods>
+								<li>Foo</li>
+							</mods>
+							<match Class="PatchOperationSequence">
 								<operations>
 
 									<li Class="PatchOperationSequence">
 										<operations>
 
-											<li Class="PatchOp_2">
-												foobar
+											<li Class="PatchOperationSequence">
+												<operations>
+
+													<li Class="PatchOp_2">
+														foobar
+													</li>
+
+												</operations>
 											</li>
 
 										</operations>
 									</li>
 
+									<li Class="PatchOp_3">
+										foobar
+									</li>
+
 								</operations>
-							</li>
+							</match>
+						</li>
 
-							<li Class="PatchOp_3">
-								foobar
-							</li>
-
-						</operations>
-					</match>
+					</operations>
 				</li>
 
 			</operations>

@@ -39,15 +39,14 @@ export function patchXML(xmlStr: string): string {
 }
 
 function unpackAllTopPatchOpFindMod(root: Element) {
-    forEachNodeIn(
-        root,
-        NodeFilter.SHOW_ELEMENT,
-        (node) =>
-            node.getAttribute('Class') === 'PatchOperationFindMod' && !isChildOfPatchOpFindMod(node)
-                ? NodeFilter.FILTER_ACCEPT
-                : NodeFilter.FILTER_REJECT,
-        (node) => unpackPatchOpFindMod(node),
-    );
+    traverseElemTree(root, (elem) => {
+        if (
+            elem.getAttribute('Class') === 'PatchOperationFindMod' &&
+            !isChildOfPatchOpFindMod(elem)
+        ) {
+            unpackPatchOpFindMod(elem);
+        }
+    });
 }
 
 function unpackPatchOpFindMod(elem: Element) {
@@ -73,20 +72,18 @@ function isChildOfPatchOpFindMod(elem: Element) {
 }
 
 function unpackAllUnnecessaryPatchOpSeq(root: Element) {
-    forEachNodeIn(
-        root,
-        NodeFilter.SHOW_ELEMENT,
-        (node) =>
-            node.getAttribute('Class') === 'PatchOperationSequence' &&
-            node.parentElement?.getAttribute('Class') !== 'PatchOperationFindMod' &&
-            node.parentElement?.getAttribute('Class') !== 'PatchOperationConditional' &&
+    traverseElemTree(root, (elem) => {
+        if (
+            elem.getAttribute('Class') === 'PatchOperationSequence' &&
+            elem.parentElement?.getAttribute('Class') !== 'PatchOperationFindMod' &&
+            elem.parentElement?.getAttribute('Class') !== 'PatchOperationConditional' &&
             // Double checking just to be sure.
-            node.tagName !== 'match' &&
-            node.tagName !== 'nomatch'
-                ? NodeFilter.FILTER_ACCEPT
-                : NodeFilter.FILTER_REJECT,
-        (node) => unpackPatchOpSeq(node),
-    );
+            elem.tagName !== 'match' &&
+            elem.tagName !== 'nomatch'
+        ) {
+            unpackPatchOpSeq(elem);
+        }
+    });
 }
 
 function unpackPatchOpSeq(elem: Element, target: Element = elem) {
@@ -122,34 +119,28 @@ function convertElemTo(src: Element, target: Element) {
 function subtractIndent(elem: Element, amount = 0) {
     if (amount === 0) return;
 
-    forEachNodeIn(elem, NodeFilter.SHOW_TEXT + NodeFilter.SHOW_COMMENT, undefined, (node) => {
-        if (node.nodeValue) {
-            node.nodeValue = node.nodeValue
+    const nodeIterator = elem.ownerDocument.createNodeIterator(
+        elem,
+        NodeFilter.SHOW_TEXT + NodeFilter.SHOW_COMMENT,
+    );
+    let currentNode;
+
+    while ((currentNode = nodeIterator.nextNode())) {
+        if (currentNode.nodeValue) {
+            currentNode.nodeValue = currentNode.nodeValue
                 .split('\n')
                 .map((value, i) => (i > 0 ? value.replace('\t'.repeat(amount), '') : value))
                 .join('\n');
         }
-    });
+    }
 }
 
-function forEachNodeIn<
-    T extends number | undefined,
-    N = T extends NodeFilter.SHOW_ELEMENT ? Element : Node,
->(root: Element, type: T, filter: ((node: N) => number) | undefined, cb: (node: N) => void) {
-    const nodeIterator = root.ownerDocument.createNodeIterator(
-        root,
-        type,
-        filter as globalThis.NodeFilter,
-    );
-    let currentNode;
-    const nodes: N[] = [];
-
-    while ((currentNode = nodeIterator.nextNode())) {
-        nodes.push(currentNode as N);
+function traverseElemTree(root: Element, cb: (elem: Element) => void) {
+    for (const child of root.children) {
+        traverseElemTree(child, cb);
     }
 
-    // We do not want to mutate DOM tree while we are still iterating over it.
-    nodes.forEach(cb);
+    cb(root);
 }
 
 function getRelElemDepth(elem1: Element, elem2: Element, depth = 0): number {
