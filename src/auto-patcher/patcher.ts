@@ -46,7 +46,7 @@ export function patchXML(xml: string | Buffer): string {
         // Unpack all top 'PatchOperationFindMod'.
         if (
             elem.getAttribute('Class') === 'PatchOperationFindMod' &&
-            !isChildOfPatchOpFindMod(elem)
+            !isDescendantOfPatchOpFindMod(elem)
         ) {
             unpackPatchOpFindMod(elem);
         }
@@ -69,12 +69,12 @@ function unpackPatchOpFindMod(elem: Element) {
     }
 }
 
-function isChildOfPatchOpFindMod(elem: Element) {
+function isDescendantOfPatchOpFindMod(elem: Element) {
     if (!elem.parentElement) return false;
 
     if (elem.parentElement.getAttribute('Class') === 'PatchOperationFindMod') return true;
 
-    return isChildOfPatchOpFindMod(elem.parentElement);
+    return isDescendantOfPatchOpFindMod(elem.parentElement);
 }
 
 function unpackPatchOpSeq(elem: Element, target: Element = elem) {
