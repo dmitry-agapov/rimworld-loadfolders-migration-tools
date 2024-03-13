@@ -119,7 +119,7 @@ function convertElemTo(src: Element, target: Element) {
     return newElem;
 }
 
-export function subtractIndent(elem: Element, amount = 0) {
+function subtractIndent(elem: Element, amount = 0) {
     if (amount === 0) return;
 
     forEachNodeIn(elem, NodeFilter.SHOW_TEXT + NodeFilter.SHOW_COMMENT, undefined, (node) => {

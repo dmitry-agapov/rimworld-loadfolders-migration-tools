@@ -4,39 +4,35 @@ import path from 'node:path';
 import url from 'node:url';
 import chalk from 'chalk';
 import jsdom from 'jsdom';
-import { patchXML, strToXMLFileStr, subtractIndent } from './patcher.js';
+import { patchXML, strToXMLFileStr } from './patcher.js';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
-(await fs.readdir(relPath('tests'))).forEach((fileName) => testFile(fileName));
-
 async function testFile(fileName: string) {
-    const testFile = await readFileStr(relPath(`tests/${fileName}`));
-    const dom = new jsdom.JSDOM(testFile, { contentType: 'text/xml' });
-    const root = dom.window.document.firstElementChild;
+    const { input, out, desc } = await parseTestFile(fileName);
+    const testName = `(${fileName.replace('.xml', '')}) ${desc}`;
 
-    if (root) {
-        const desc = root.getAttribute('description');
-        let [input, out] = root.querySelectorAll(':scope > Patch');
-
-        if (input && !out && root.getAttribute('outputIsEqualToInput')) out = input;
-
-        if (input && out && desc) {
-            subtractIndent(input, 1);
-            subtractIndent(out, 1);
-
-            return test(`(${fileName.replace('.xml', '')}) ${desc}`, () => {
-                assert.equal(patchXML(input!.outerHTML), strToXMLFileStr(out!.outerHTML));
-            });
-        }
-    }
-
-    throw new Error(`Invalid test file: ${fileName}.`);
+    test(testName, () => assert.equal(patchXML(input), strToXMLFileStr(out)));
 }
 
-async function test(name: string, cb: () => void) {
+async function parseTestFile(fileName: string) {
+    const dom = await jsdom.JSDOM.fromFile(relPath(`tests/${fileName}`), {
+        contentType: 'text/xml',
+    });
+    const root = dom.window.document.firstElementChild;
+    const desc = root?.getAttribute('description');
+    let [input, out] = root?.querySelectorAll(':scope > Patch') || [];
+
+    if (!out && root?.getAttribute('outputIsEqualToInput')) out = input;
+
+    if (!input || !out || !desc) throw new Error(`Invalid test file: ${fileName}`);
+
+    return { input: input.outerHTML, out: out.outerHTML, desc };
+}
+
+function test(name: string, cb: () => void) {
     try {
-        await Promise.resolve(cb());
+        cb();
         console.log(`${chalk.green('[PASS]')}: ${name}`);
     } catch (e) {
         console.log(`${chalk.red('[FAIL]')}: ${name}`);
@@ -44,10 +40,8 @@ async function test(name: string, cb: () => void) {
     }
 }
 
-async function readFileStr(path: string) {
-    return '' + (await fs.readFile(path));
-}
-
 function relPath(p: string) {
     return path.join(__dirname.replace('.tsc', 'src'), p);
 }
+
+(await fs.readdir(relPath('tests'))).forEach(testFile);
