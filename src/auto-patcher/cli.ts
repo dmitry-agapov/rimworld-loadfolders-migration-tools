@@ -38,9 +38,7 @@ async function main(modPath: string, { d }: { d: boolean }) {
                 const filePath = path.join(modPath, dirSubPath, fileSubPath);
 
                 if (d) {
-                    const file = await fs.readFile(filePath, { encoding: 'utf-8' });
-
-                    patchXML(file);
+                    patchXML(await fs.readFile(filePath));
                 } else {
                     patchFile(filePath);
                 }

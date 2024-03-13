@@ -24,22 +24,26 @@ enum NodeFilter {
 }
 
 export async function patchFile(filePath: string) {
-    return fs.writeFile(filePath, patchXML(await fs.readFile(filePath, { encoding: 'utf-8' })));
+    return fs.writeFile(filePath, patchXML(await fs.readFile(filePath)));
 }
 
-export function patchXML(xmlStr: string): string {
-    const dom = new jsdom.JSDOM(xmlStr, { contentType: 'text/xml' });
-    const documentElement = dom.window.document.documentElement;
+export function patchXML(xml: string | Buffer): string {
+    const dom = new jsdom.JSDOM(xml, { contentType: 'text/xml' });
 
-    unpackAllUnnecessaryPatchOpSeq(documentElement);
+    traverseElemTree(dom.window.document.documentElement, (elem) => {
+        // Unpack all unnecessary 'PatchOperationSequence'.
+        if (
+            elem.getAttribute('Class') === 'PatchOperationSequence' &&
+            elem.parentElement?.getAttribute('Class') !== 'PatchOperationFindMod' &&
+            elem.parentElement?.getAttribute('Class') !== 'PatchOperationConditional' &&
+            // Double checking just to be sure.
+            elem.tagName !== 'match' &&
+            elem.tagName !== 'nomatch'
+        ) {
+            unpackPatchOpSeq(elem);
+        }
 
-    unpackAllTopPatchOpFindMod(documentElement);
-
-    return strToXMLFileStr(dom.serialize());
-}
-
-function unpackAllTopPatchOpFindMod(root: Element) {
-    traverseElemTree(root, (elem) => {
+        // Unpack all top 'PatchOperationFindMod'.
         if (
             elem.getAttribute('Class') === 'PatchOperationFindMod' &&
             !isChildOfPatchOpFindMod(elem)
@@ -47,6 +51,8 @@ function unpackAllTopPatchOpFindMod(root: Element) {
             unpackPatchOpFindMod(elem);
         }
     });
+
+    return strToXMLFileStr(dom.serialize());
 }
 
 function unpackPatchOpFindMod(elem: Element) {
@@ -69,21 +75,6 @@ function isChildOfPatchOpFindMod(elem: Element) {
     if (elem.parentElement.getAttribute('Class') === 'PatchOperationFindMod') return true;
 
     return isChildOfPatchOpFindMod(elem.parentElement);
-}
-
-function unpackAllUnnecessaryPatchOpSeq(root: Element) {
-    traverseElemTree(root, (elem) => {
-        if (
-            elem.getAttribute('Class') === 'PatchOperationSequence' &&
-            elem.parentElement?.getAttribute('Class') !== 'PatchOperationFindMod' &&
-            elem.parentElement?.getAttribute('Class') !== 'PatchOperationConditional' &&
-            // Double checking just to be sure.
-            elem.tagName !== 'match' &&
-            elem.tagName !== 'nomatch'
-        ) {
-            unpackPatchOpSeq(elem);
-        }
-    });
 }
 
 function unpackPatchOpSeq(elem: Element, target: Element = elem) {
