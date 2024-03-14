@@ -32,65 +32,67 @@ export function patchXML(xml: string | Buffer): string {
 
     traverseElemTree(dom.window.document.documentElement, (elem) => {
         // Unpack all unnecessary 'PatchOperationSequence'.
-        if (
-            elem.getAttribute('Class') === 'PatchOperationSequence' &&
-            elem.parentElement?.getAttribute('Class') !== 'PatchOperationFindMod' &&
-            elem.parentElement?.getAttribute('Class') !== 'PatchOperationConditional' &&
-            // Double checking just to be sure.
-            elem.tagName !== 'match' &&
-            elem.tagName !== 'nomatch'
-        ) {
-            unpackPatchOpSeq(elem);
-        }
+        if (isUnpackablePatchOpSeq(elem)) unpackPatchOpSeq(elem);
 
         // Unpack all top 'PatchOperationFindMod'.
-        if (
-            elem.getAttribute('Class') === 'PatchOperationFindMod' &&
-            !isDescendantOfPatchOpFindMod(elem)
-        ) {
-            unpackPatchOpFindMod(elem);
-        }
+        if (isUnpackablePatchOpFindMod(elem)) unpackPatchOpFindMod(elem);
     });
 
     return strToXMLFileStr(dom.serialize());
 }
 
+function isUnpackablePatchOpFindMod(elem: Element) {
+    return (
+        elem.getAttribute('Class') === 'PatchOperationFindMod' &&
+        !isDescendantOfPatchOpFindMod(elem)
+    );
+}
+
+function isDescendantOfPatchOpFindMod({ parentElement }: Element) {
+    if (!parentElement) return false;
+
+    if (parentElement.getAttribute('Class') === 'PatchOperationFindMod') return true;
+
+    return isDescendantOfPatchOpFindMod(parentElement);
+}
+
 function unpackPatchOpFindMod(elem: Element) {
     const matchElem = elem.querySelector(':scope > match');
 
-    if (matchElem && !elem.querySelector(':scope > nomatch')) {
-        if (matchElem.getAttribute('Class') === 'PatchOperationSequence') {
-            unpackPatchOpSeq(matchElem, elem);
-        } else {
-            subtractIndent(matchElem, 1);
+    if (!matchElem || elem.querySelector(':scope > nomatch')) return;
 
-            elem.replaceWith(convertElemTo(matchElem, elem));
-        }
+    if (matchElem.getAttribute('Class') === 'PatchOperationSequence') {
+        unpackPatchOpSeq(matchElem, elem);
+    } else {
+        subtractIndent(matchElem, 1);
+
+        elem.replaceWith(convertElemTo(matchElem, elem));
     }
 }
 
-function isDescendantOfPatchOpFindMod(elem: Element) {
-    if (!elem.parentElement) return false;
-
-    if (elem.parentElement.getAttribute('Class') === 'PatchOperationFindMod') return true;
-
-    return isDescendantOfPatchOpFindMod(elem.parentElement);
+function isUnpackablePatchOpSeq(elem: Element) {
+    return (
+        elem.getAttribute('Class') === 'PatchOperationSequence' &&
+        elem.parentElement?.getAttribute('Class') !== 'PatchOperationFindMod' &&
+        elem.parentElement?.getAttribute('Class') !== 'PatchOperationConditional' &&
+        // Double checking just to be sure.
+        elem.tagName !== 'match' &&
+        elem.tagName !== 'nomatch'
+    );
 }
 
 function unpackPatchOpSeq(elem: Element, target: Element = elem) {
     const opsElem = elem.querySelector(':scope > operations');
 
-    if (opsElem) {
-        Array.from(opsElem.children).forEach((item) => {
-            item.replaceWith(convertElemTo(item, target));
-        });
+    if (!opsElem) return;
 
-        trimElemContent(opsElem);
+    for (const op of opsElem.children) op.replaceWith(convertElemTo(op, target));
 
-        subtractIndent(opsElem, getRelElemDepth(target, opsElem) + 1);
+    trimElemContent(opsElem);
 
-        target.replaceWith(...opsElem.childNodes);
-    }
+    subtractIndent(opsElem, getRelElemDepth(target, opsElem) + 1);
+
+    target.replaceWith(...opsElem.childNodes);
 }
 
 function convertElemTo(src: Element, target: Element) {
@@ -110,6 +112,7 @@ function convertElemTo(src: Element, target: Element) {
 function subtractIndent(elem: Element, amount = 0) {
     if (amount === 0) return;
 
+    const substrToSubtract = '\t'.repeat(amount);
     const nodeIterator = elem.ownerDocument.createNodeIterator(
         elem,
         NodeFilter.SHOW_TEXT + NodeFilter.SHOW_COMMENT,
@@ -117,29 +120,28 @@ function subtractIndent(elem: Element, amount = 0) {
     let currentNode;
 
     while ((currentNode = nodeIterator.nextNode())) {
-        if (currentNode.nodeValue) {
-            currentNode.nodeValue = currentNode.nodeValue
-                .split('\n')
-                .map((value, i) => (i > 0 ? value.replace('\t'.repeat(amount), '') : value))
-                .join('\n');
-        }
+        if (!currentNode.nodeValue) continue;
+
+        currentNode.nodeValue = mapStrLines(currentNode.nodeValue, (line, i) =>
+            i > 0 ? line.replace(substrToSubtract, '') : line,
+        );
     }
 }
 
+function mapStrLines(str: string, cb: (line: string, index: number) => string) {
+    return str.split('\n').map(cb).join('\n');
+}
+
 function traverseElemTree(root: Element, cb: (elem: Element) => void) {
-    for (const child of root.children) {
-        traverseElemTree(child, cb);
-    }
+    for (const child of root.children) traverseElemTree(child, cb);
 
     cb(root);
 }
 
 function getRelElemDepth(elem1: Element, elem2: Element, depth = 0): number {
-    if (elem1 !== elem2 && elem2.parentElement) {
-        return getRelElemDepth(elem1, elem2.parentElement, depth + 1);
-    }
+    if (elem1 === elem2 || !elem2.parentElement) return depth;
 
-    return depth;
+    return getRelElemDepth(elem1, elem2.parentElement, depth + 1);
 }
 
 function trimElemContent({ firstChild, lastChild, TEXT_NODE }: Element) {
