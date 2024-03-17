@@ -36,7 +36,7 @@ function test(name: string, cb: () => void) {
         console.log(`${chalk.green('[PASS]')}: ${name}`);
     } catch (e) {
         console.log(`${chalk.red('[FAIL]')}: ${name}`);
-        console.log(e instanceof Error ? e.message : e);
+        throw e;
     }
 }
 

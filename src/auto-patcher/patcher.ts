@@ -1,4 +1,5 @@
-import fs from 'node:fs/promises';
+import fs from 'node:fs';
+import path from 'node:path';
 import { EOL } from 'os';
 import jsdom from 'jsdom';
 
@@ -23,8 +24,28 @@ enum NodeFilter {
     SHOW_NOTATION = 0x800,
 }
 
-export async function patchFile(filePath: string) {
-    return fs.writeFile(filePath, patchXML(await fs.readFile(filePath)));
+export function patchDir(srcDirPath: string, destDirPath: string = srcDirPath) {
+    srcDirPath = path.resolve(srcDirPath);
+    destDirPath = path.resolve(destDirPath);
+    const dirContent = fs.readdirSync(srcDirPath, { recursive: true, encoding: 'utf-8' });
+    const filePaths = dirContent.filter((item) => item.toLowerCase().endsWith('.xml'));
+    const logProgress = createProgressLogger('Patching', filePaths.length);
+
+    for (const filePath of filePaths) {
+        const srcPath = path.join(srcDirPath, filePath);
+        const patchedFile = patchFile(srcPath);
+        const destPath = path.join(destDirPath, filePath);
+
+        writeFileSyncRecursive(destPath, patchedFile);
+
+        logProgress(1);
+    }
+
+    console.log('Done!');
+}
+
+function patchFile(filePath: string) {
+    return patchXML(fs.readFileSync(filePath));
 }
 
 export function patchXML(xml: string | Buffer): string {
@@ -164,4 +185,27 @@ function attachXMLDocDecl(str: string) {
 
 function fixEOL(str: string) {
     return str.replaceAll('\n', EOL);
+}
+
+function writeFileSyncRecursive(destPath: string, file: string) {
+    fs.mkdirSync(path.dirname(destPath), { recursive: true });
+    fs.writeFileSync(destPath, file);
+}
+
+function createProgressLogger(taskName: string, total: number) {
+    let curr = 0;
+
+    return (progress: number = 0) => logProgress(taskName, (curr = curr + progress), total);
+}
+
+function logProgress(taskName: string, curr: number, total: number) {
+    const pgBarWidth = 20;
+    const pgBarCurrSectionsCount = curr / (total / pgBarWidth);
+    const pgBar = '\u25A0'.repeat(pgBarCurrSectionsCount).padEnd(pgBarWidth, '-');
+    const percentage = ~~(100 / (total / curr));
+    const counter = `${curr}/${total}`;
+
+    process.stdout.write(`\r${taskName} ${pgBar} ${percentage}% | ${counter}`);
+
+    if (curr === total) process.stdout.write('\n');
 }
