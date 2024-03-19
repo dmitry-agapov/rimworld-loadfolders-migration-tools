@@ -132,5 +132,5 @@ dist
 # Generated files
 .tsc
 errors.json
-knownMods.json
-LoadFolders.xml
+known-mods.json
+load-folders-records.xml

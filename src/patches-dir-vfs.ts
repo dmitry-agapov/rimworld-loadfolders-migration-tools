@@ -13,7 +13,7 @@ interface VFSRoot {
     readonly subdirs: VFSSubdir[];
 }
 
-interface VFSSubdir {
+export interface VFSSubdir {
     readonly absPath: string;
     readonly name: string;
     readonly files: VFSFile[];
