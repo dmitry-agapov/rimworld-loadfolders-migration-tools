@@ -5,7 +5,7 @@ import jsdom from 'jsdom';
 import * as utils from './utils.js';
 
 commander.program
-    .argument('<string>', 'Path to directory with patches.')
+    .argument('<string>', 'Path to directory with mods.')
     .argument('[string]', 'Output file path.', path.resolve('./known-mods.json'))
     .action((dirPath: string, outFilePath: string) => {
         dirPath = path.resolve(dirPath);
