@@ -14,6 +14,7 @@ interface VFSRoot {
 }
 
 interface VFSSubdir {
+    readonly absPath: string;
     readonly name: string;
     readonly files: VFSFile[];
     readonly modSets: utils.SetOfSets<string>;
@@ -116,6 +117,7 @@ async function createVSubdir(
     }
 
     const result: utils.Mutable<VFSSubdir> = {
+        absPath: absDirPath,
         name,
         files,
         modSets,

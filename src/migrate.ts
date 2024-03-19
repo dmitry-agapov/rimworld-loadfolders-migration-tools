@@ -76,6 +76,8 @@ async function migrate(
 
                 await utils.writeFileRecursive(absFilePath, patchedFileStr, 'utf-8');
             }
+
+            await fs.rm(vSubdir.absPath, { recursive: true });
         }
     } else {
         console.log('No destination directory path was provided. Skipping patching.');
