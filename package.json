@@ -8,7 +8,9 @@
 	"scripts": {
 		"compile": "tsc",
 		"compile:watch": "tsc -w",
-		"patcher:test": "node ./.tsc/patcher/test.js"
+		"patcher:test": "node --enable-source-maps ./.tsc/patcher/test.js",
+		"scan-mods": "node --enable-source-maps ./.tsc/scan-mods.js",
+		"migrate": "node --enable-source-maps ./.tsc/migrate.js"
 	},
     "dependencies": {
         "@types/express": "^4.17.21",
