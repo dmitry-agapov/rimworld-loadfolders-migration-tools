@@ -130,6 +130,7 @@ dist
 .pnp.*
 
 # Generated files
-mods.json
-LoadFoldres.xml
 .tsc
+errors.json
+knownMods.json
+LoadFolders.xml

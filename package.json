@@ -7,8 +7,8 @@
     "type": "module",
 	"scripts": {
 		"compile": "tsc",
-		"compile-watch": "tsc -w",
-		"auto-patcher-test": "node ./.tsc/auto-patcher/test.js"
+		"compile:watch": "tsc -w",
+		"patcher:test": "node ./.tsc/patcher/test.js"
 	},
     "dependencies": {
         "@types/express": "^4.17.21",

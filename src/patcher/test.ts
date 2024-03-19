@@ -4,7 +4,8 @@ import path from 'node:path';
 import url from 'node:url';
 import chalk from 'chalk';
 import jsdom from 'jsdom';
-import { patchXML, strToXMLFileStr } from './patcher.js';
+import * as patcher from '../patcher.js';
+import * as utils from '../utils.js';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
@@ -12,18 +13,18 @@ async function testFile(fileName: string) {
     const { input, out, desc } = await parseTestFile(fileName);
     const testName = `(${fileName.replace('.xml', '')}) ${desc}`;
 
-    test(testName, () => assert.equal(patchXML(input), strToXMLFileStr(out)));
+    test(testName, () => assert.equal(patcher.patchRawXML(input), utils.strToXMLFileStr(out)));
 }
 
 async function parseTestFile(fileName: string) {
     const dom = await jsdom.JSDOM.fromFile(relPath(`tests/${fileName}`), {
         contentType: 'text/xml',
     });
-    const root = dom.window.document.firstElementChild;
-    const desc = root?.getAttribute('description');
-    let [input, out] = root?.querySelectorAll(':scope > Patch') || [];
+    const root = dom.window.document.documentElement;
+    const desc = root.getAttribute('description');
+    let [input, out] = utils.getAllDirectChildrenByTagName(root, 'Patch');
 
-    if (!out && root?.getAttribute('outputIsEqualToInput')) out = input;
+    if (!out && root.getAttribute('outputIsEqualToInput')) out = input;
 
     if (!input || !out || !desc) throw new Error(`Invalid test file: ${fileName}`);
 
