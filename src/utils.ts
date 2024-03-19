@@ -190,3 +190,7 @@ export function isEqSets<T>(set1: Set<T>, set2: Set<T>) {
 export interface KnownMods {
     [key: string]: string;
 }
+
+export type Mutable<T> = {
+    -readonly [Property in keyof T]: T[Property];
+};

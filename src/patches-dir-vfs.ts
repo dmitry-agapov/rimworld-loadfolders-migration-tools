@@ -17,43 +17,24 @@ interface VFSSubdir {
     readonly name: string;
     readonly files: VFSFile[];
     readonly modSets: utils.SetOfSets<string>;
-    readonly errors: (
-        | VFSSubdirNoModsError
-        | VFSSubdirIsPatchCollectionError
-        | VFSSubdirUnidentModsFoundError
-    )[];
+    readonly errors?: {
+        readonly [VFSSubdirErrorType.UNIDENT_MODS_FOUND]?: string[];
+        readonly [VFSSubdirErrorType.IS_COLLECTION]?: {
+            modSets: utils.SetOfSets<string>;
+            files: string[];
+        }[];
+    };
 }
 
 enum VFSSubdirErrorType {
-    NO_MODS = 'NO_MODS',
-    IS_COLLECTION = 'IS_COLLECTION',
+    /**
+     * Unidentified mods found.
+     */
     UNIDENT_MODS_FOUND = 'UNIDENT_MODS_FOUND',
-}
-
-class VFSSubdirNoModsError {
-    readonly type = VFSSubdirErrorType.NO_MODS;
-    readonly description = 'Directory does not contain patches for any mod.';
-}
-
-class VFSSubdirIsPatchCollectionError {
-    readonly type = VFSSubdirErrorType.IS_COLLECTION;
-    readonly description = 'Directory contains files that apply patches to different sets of mods.';
-    readonly details: {
-        modSets: utils.SetOfSets<string>;
-        files: string[];
-    }[];
-    constructor(details: VFSSubdirIsPatchCollectionError['details']) {
-        this.details = details;
-    }
-}
-
-class VFSSubdirUnidentModsFoundError {
-    readonly type = VFSSubdirErrorType.UNIDENT_MODS_FOUND;
-    readonly description = 'Unidentified mods found.';
-    readonly details: string[];
-    constructor(details: VFSSubdirUnidentModsFoundError['details']) {
-        this.details = details;
-    }
+    /**
+     * Directory contains files that apply patches to different sets of mods.
+     */
+    IS_COLLECTION = 'IS_COLLECTION',
 }
 
 interface VFSFile {
@@ -100,12 +81,23 @@ async function createVSubdir(
             return vFile;
         }),
     );
-    const errors: VFSSubdir['errors'] = [];
+    const errors: utils.Mutable<VFSSubdir['errors']> = {};
 
-    if (modSets.size === 0) errors.push(new VFSSubdirNoModsError());
+    if (knownMods) {
+        const unidentifiedMods: string[] = [];
+
+        for (const modName of new Set(modSets.toArrayDeep().flat())) {
+            if (!knownMods[modName]) unidentifiedMods.push(modName);
+        }
+
+        if (unidentifiedMods.length > 0) {
+            errors[VFSSubdirErrorType.UNIDENT_MODS_FOUND] = unidentifiedMods;
+        }
+    }
 
     if (modSets.size > 1) {
-        const details: VFSSubdirIsPatchCollectionError['details'] = [];
+        const details: Exclude<VFSSubdir['errors'], undefined>[VFSSubdirErrorType.IS_COLLECTION] =
+            [];
 
         for (const file of files) {
             const detailsRecord = details.find((item) => item.modSets.isEqualTo(file.modSets));
@@ -120,27 +112,18 @@ async function createVSubdir(
             }
         }
 
-        errors.push(new VFSSubdirIsPatchCollectionError(details));
+        errors[VFSSubdirErrorType.IS_COLLECTION] = details;
     }
 
-    if (knownMods) {
-        const unidentifiedMods: string[] = [];
-
-        for (const modName of new Set(modSets.toArrayDeep().flat())) {
-            if (!knownMods[modName]) unidentifiedMods.push(modName);
-        }
-
-        if (unidentifiedMods.length > 0) {
-            errors.push(new VFSSubdirUnidentModsFoundError(unidentifiedMods));
-        }
-    }
-
-    return {
+    const result: utils.Mutable<VFSSubdir> = {
         name,
         files,
         modSets,
-        errors,
     };
+
+    if (Object.keys(errors).length > 0) result.errors = errors;
+
+    return result;
 }
 
 async function createVFile(absParentDirPath: string, subpath: string): Promise<VFSFile> {
@@ -188,9 +171,7 @@ export function printMigrationErrors(unmigratableSubdirs: VFSSubdir[]) {
         [key: string]: VFSSubdir['errors'];
     } = {};
 
-    unmigratableSubdirs.forEach((subdir) => {
-        errors[subdir.name] = subdir.errors;
-    });
+    unmigratableSubdirs.forEach((subdir) => (errors[subdir.name] = subdir.errors));
 
     const json = JSON.stringify(
         errors,

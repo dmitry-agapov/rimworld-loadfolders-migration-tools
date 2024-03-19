@@ -31,7 +31,9 @@ async function migrate(
         : undefined;
     console.log('Loading files into memory...');
     const patchesDir = await patchesDirVFS.createVFS(absSrcDirPath, skipDirs, knownMods);
-    const unmigratableSubdirs = patchesDir.subdirs.filter((subdir) => subdir.errors.length > 0);
+    const unmigratableSubdirs = patchesDir.subdirs.filter(
+        (subdir) => subdir.errors && Object.keys(subdir.errors).length > 0,
+    );
 
     if (unmigratableSubdirs.length > 0) {
         const filePath = path.resolve('errors.json');
