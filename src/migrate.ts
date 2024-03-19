@@ -44,9 +44,7 @@ async function migrate(
             'utf-8',
         );
 
-        console.log(`Unable to migrate. See ${filePath} for details.`);
-
-        return;
+        console.log(`Unable to migrate some directories. See ${filePath} for details.`);
     }
 
     if (knownMods) {
@@ -62,6 +60,8 @@ async function migrate(
         console.log('Patching...');
 
         for (const vSubdir of patchesDir.subdirs) {
+            if (vSubdir.errors) continue;
+
             for (const vFile of vSubdir.files) {
                 patcher.patchDOC(vFile.dom.window.document);
 
