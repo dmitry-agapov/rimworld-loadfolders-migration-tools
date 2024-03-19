@@ -31,6 +31,8 @@ export interface VFSSubdir {
 enum VFSSubdirErrorType {
     /**
      * Directory doesn't contain patches.
+     *
+     * This is mainly used to automatically skip directories that do not contain patches.
      */
     NO_PATCHES = 'NO_PATCHES',
     /**
