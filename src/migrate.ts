@@ -52,7 +52,7 @@ async function migrate(
         // TODO: Implement LoadFolders.xml records generation.
     } else {
         console.log(
-            'No known mods file path was provided. Skipping LoadFolders.xml records generation.',
+            'No "known mods" file path was provided. Skipping LoadFolders.xml records generation.',
         );
     }
 
