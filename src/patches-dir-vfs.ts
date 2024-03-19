@@ -19,6 +19,7 @@ interface VFSSubdir {
     readonly files: VFSFile[];
     readonly modSets: utils.SetOfSets<string>;
     readonly errors?: {
+        readonly [VFSSubdirErrorType.NO_PATCHES]?: true;
         readonly [VFSSubdirErrorType.UNIDENT_MODS_FOUND]?: string[];
         readonly [VFSSubdirErrorType.IS_COLLECTION]?: {
             modSets: utils.SetOfSets<string>;
@@ -28,6 +29,10 @@ interface VFSSubdir {
 }
 
 enum VFSSubdirErrorType {
+    /**
+     * Directory doesn't contain patches.
+     */
+    NO_PATCHES = 'NO_PATCHES',
     /**
      * Unidentified mods found.
      */
@@ -83,6 +88,10 @@ async function createVSubdir(
         }),
     );
     const errors: utils.Mutable<VFSSubdir['errors']> = {};
+
+    if (modSets.size === 0) {
+        errors[VFSSubdirErrorType.NO_PATCHES] = true;
+    }
 
     if (knownMods) {
         const unidentifiedMods: string[] = [];
