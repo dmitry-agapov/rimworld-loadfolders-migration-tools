@@ -188,7 +188,7 @@ export function isEqSets<T>(set1: Set<T>, set2: Set<T>) {
 }
 
 export interface KnownMods {
-    [key: string]: string;
+    [key: string]: string | string[];
 }
 
 export type Mutable<T> = {
@@ -212,4 +212,8 @@ export function escapeXMLStr(unsafe: string): string | undefined {
                 return c;
         }
     });
+}
+
+export function dedupeArray<T>(arr: T[]) {
+    return [...new Set<T>(arr)];
 }

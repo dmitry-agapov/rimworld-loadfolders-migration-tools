@@ -12,7 +12,7 @@ commander.program
         outFilePath = path.resolve(outFilePath);
         const dirContent = fs.readdirSync(dirPath);
         const filesToScan = dirContent.map((item) => path.join(dirPath, item, 'about/about.xml'));
-        const knownMods: { [key: string]: string | string[] } = {
+        const knownMods: utils.KnownMods = {
             Royalty: 'Ludeon.Rimworld.Royalty',
             Ideology: 'Ludeon.Rimworld.Ideology',
             Biotech: 'Ludeon.Rimworld.Biotech',

@@ -73,8 +73,8 @@ async function migrate(
         const filePath = path.resolve('load-folders-records.xml');
 
         for (const vSubdir of migratableSubdirs) {
-            const modNames = [...new Set(vSubdir.modSets.toArrayDeep().flat())];
-            const packageIds = modNames.map((modName) => knownMods[modName]);
+            const modNames = utils.dedupeArray(vSubdir.modSets.toArrayDeep().flat());
+            const packageIds = utils.dedupeArray(modNames.flatMap((modName) => knownMods[modName]));
             const recordDirPath = `${destDirSubpath.replaceAll(path.sep, '/')}/${vSubdir.name}`;
 
             records.push(
