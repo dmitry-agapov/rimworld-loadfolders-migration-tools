@@ -57,6 +57,8 @@ async function migrate(
     for (const dirName of dirNames) {
         if (skipDirs.includes(dirName)) continue;
 
+        logProgress(dirName);
+
         const absDirPath = path.join(absSrcDirPath, dirName);
         const [dirFiles, dirModsets] = await loadDirFiles(absDirPath);
         const dirIssues = scanDirForIssues(dirFiles, dirModsets, knownMods);
@@ -74,8 +76,6 @@ async function migrate(
 
             if (!skipPatching) await migrateDir(absDirPath, dirFiles, absDestDirPath);
         }
-
-        logProgress(dirName);
     }
 
     if (loadFoldersRecords.length > 0) {
