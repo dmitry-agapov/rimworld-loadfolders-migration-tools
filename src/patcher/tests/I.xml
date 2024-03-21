@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Test description="Properly unpacks 'PatchOperationFindMod' into 'PatchOperationSequence'.">
+
+	<Patch>
+
+		<Operation Class="FooBar">
+			<baz Class="PatchOperationFindMod">
+				<mods>
+					<li>Foo</li>
+				</mods>
+				<match Class="PatchOperationSequence">
+					<operations>
+
+						<li Class="PatchOp">
+							foobar
+						</li>
+
+						<li Class="PatchOp">
+							foobar
+						</li>
+
+						<li Class="PatchOp">
+							foobar
+						</li>
+
+					</operations>
+				</match>
+			</baz>
+		</Operation>
+
+	</Patch>
+
+	<Patch>
+
+		<Operation Class="FooBar">
+			<baz Class="PatchOperationSequence">
+				<operations>
+
+					<li Class="PatchOp">
+						foobar
+					</li>
+
+					<li Class="PatchOp">
+						foobar
+					</li>
+
+					<li Class="PatchOp">
+						foobar
+					</li>
+
+				</operations>
+			</baz>
+		</Operation>
+
+	</Patch>
+
+</Test>

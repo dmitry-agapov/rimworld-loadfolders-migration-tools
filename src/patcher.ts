@@ -41,7 +41,7 @@ function unpackPOFM(elem: Element) {
 
     if (!matchElem) return;
 
-    if (matchElem.getAttribute('Class') === 'PatchOperationSequence') {
+    if (isUnpackablePOS(matchElem, elem)) {
         unpackPOS(matchElem, elem);
     } else {
         subtractIndent(matchElem, 1);
@@ -50,15 +50,15 @@ function unpackPOFM(elem: Element) {
     }
 }
 
-function isUnpackablePOS(elem: Element) {
+function isUnpackablePOS(elem: Element, target: Element = elem) {
     return (
         elem.getAttribute('Class') === 'PatchOperationSequence' &&
-        elem.parentElement?.getAttribute('Class') !== 'PatchOperationFindMod' &&
-        elem.parentElement?.getAttribute('Class') !== 'PatchOperationConditional' &&
-        // Double checking just to be sure.
-        elem.tagName !== 'match' &&
-        elem.tagName !== 'nomatch'
+        (isTopPatchOp(target) || target.tagName === 'li')
     );
+}
+
+function isTopPatchOp({ tagName, parentElement, ownerDocument }: Element) {
+    return tagName === 'Operation' && parentElement === ownerDocument.documentElement;
 }
 
 function unpackPOS(elem: Element, target: Element = elem) {

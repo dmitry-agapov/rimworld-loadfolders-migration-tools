@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Test
+	description="Does not unpack 'PatchOperationSequence' if it would produce an incorrect result."
+	outputIsEqualToInput="true"
+>
+
+	<Patch>
+
+		<Operation Class="FooBar">
+			<baz Class="PatchOperationSequence">
+				<operations>
+
+					<li Class="PatchOp">
+						foobar
+					</li>
+
+					<li Class="PatchOp">
+						foobar
+					</li>
+
+					<li Class="PatchOp">
+						foobar
+					</li>
+
+				</operations>
+			</baz>
+		</Operation>
+
+	</Patch>
+
+</Test>
