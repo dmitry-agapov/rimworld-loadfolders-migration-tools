@@ -5,13 +5,13 @@
     "author": "Dmitry Agapov",
     "license": "MIT",
     "type": "module",
-	"scripts": {
-		"compile": "tsc",
-		"compile:watch": "tsc -w",
-		"patcher:test": "node --enable-source-maps ./.tsc/patcher/test.js",
-		"scan-mods": "node --enable-source-maps ./.tsc/scan-mods.js",
-		"migrate": "node --enable-source-maps ./.tsc/migrate.js"
-	},
+    "scripts": {
+        "compile": "tsc",
+        "compile:watch": "tsc -w",
+        "patcher:test": "node --enable-source-maps ./.tsc/patcher/test.js",
+        "scan-mods": "node --enable-source-maps ./.tsc/scan-mods.js",
+        "migrate": "node --enable-source-maps ./.tsc/migrate.js"
+    },
     "dependencies": {
         "@types/express": "^4.17.21",
         "@types/jsdom": "^21.1.6",
@@ -19,6 +19,7 @@
         "chalk": "^5.3.0",
         "chokidar": "^3.6.0",
         "commander": "^12.0.0",
+        "common-path-prefix": "^3.0.0",
         "express": "^4.18.2",
         "jsdom": "^24.0.0",
         "tslib": "^2.6.2",

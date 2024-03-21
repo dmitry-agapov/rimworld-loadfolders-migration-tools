@@ -131,6 +131,6 @@ dist
 
 # Generated files
 .tsc
-errors.json
+issues.json
 known-mods.json
 load-folders-records.xml

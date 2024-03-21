@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
+import process from 'node:process';
 
 export const xmlDocDeclaration = '<?xml version="1.0" encoding="utf-8"?>';
 
@@ -90,17 +91,24 @@ export async function writeFileRecursive(destPath: string, file: string, options
 export function createProgressLogger(taskName: string, total: number) {
     let curr = 0;
 
-    return (progress: number = 0) => logProgress(taskName, (curr = curr + progress), total);
+    return (addon?: string) => {
+        logProgress(taskName, ++curr, total, addon);
+    };
 }
 
-export function logProgress(taskName: string, curr: number, total: number) {
+export function logProgress(taskName: string, curr: number, total: number, addon?: string) {
     const pgBarWidth = 20;
     const pgBarCurrSectionsCount = curr / (total / pgBarWidth);
     const pgBar = '\u25A0'.repeat(pgBarCurrSectionsCount).padEnd(pgBarWidth, '-');
     const percentage = ~~(100 / (total / curr));
-    const counter = `${curr}/${total}`;
+    const parts = [`\r${taskName} ${pgBar} ${percentage}%`, `${curr}/${total}`];
+    if (addon) parts.push(addon);
+    const output = parts
+        .join(' | ')
+        .slice(0, process.stdout.columns)
+        .padEnd(process.stdout.columns);
 
-    process.stdout.write(`\r${taskName} ${pgBar} ${percentage}% | ${counter}`);
+    process.stdout.write(output);
 
     if (curr === total) process.stdout.write('\n');
 }
@@ -158,31 +166,6 @@ export function trimElemContent({ firstChild, lastChild, TEXT_NODE }: Element) {
     }
 }
 
-export class SetOfSets<T> {
-    #sets: Set<T>[] = [];
-    add(value: Set<T>) {
-        if (!this.#sets.find((item) => isEqSets(item, value))) this.#sets.push(value);
-    }
-    forEach(cb: (v: Set<T>) => void) {
-        this.#sets.forEach(cb);
-    }
-    mergeWith(set: SetOfSets<T>) {
-        set.forEach((item) => this.add(item));
-    }
-    toArrayDeep() {
-        return this.#sets.map((item) => [...item]);
-    }
-    isEqualTo(set: SetOfSets<T>) {
-        return this.size === set.size && this.#sets.every((item) => set.has(item));
-    }
-    has(value: Set<T>) {
-        return !!this.#sets.find((item) => isEqSets(item, value));
-    }
-    get size() {
-        return this.#sets.length;
-    }
-}
-
 export function isEqSets<T>(set1: Set<T>, set2: Set<T>) {
     return set1.size === set2.size && [...set1].every((item) => set2.has(item));
 }
@@ -216,4 +199,12 @@ export function escapeXMLStr(unsafe: string): string | undefined {
 
 export function dedupeArray<T>(arr: T[]) {
     return [...new Set<T>(arr)];
+}
+
+export function isEmptyObj(obj: {}) {
+    return objSize(obj) === 0;
+}
+
+export function objSize(obj: {}) {
+    return Object.keys(obj).length;
 }
