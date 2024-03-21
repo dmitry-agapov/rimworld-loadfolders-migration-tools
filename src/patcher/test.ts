@@ -6,8 +6,54 @@ import chalk from 'chalk';
 import jsdom from 'jsdom';
 import * as patcher from '../patcher.js';
 import * as utils from '../utils.js';
+import * as commander from 'commander';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
+
+commander.program
+    .argument('[string]', 'Original files directory path.')
+    .argument('[string]', 'Reference files directory path.')
+    .action(async (origDirPath?: string, refDirPath?: string) => {
+        if (origDirPath && refDirPath) {
+            await compareDirs(origDirPath, refDirPath);
+        } else {
+            (await fs.readdir(relPath('tests'))).forEach(testFile);
+        }
+
+        console.log('Done!');
+    })
+    .parseAsync();
+
+/**
+ * The main intent here is to test whether the new version of the patcher produces the same result as the previous one.
+ *
+ * If it is not, then this probably means that the previous version of patcher was bugged in some way and we need to repatch our files using the new version of the patcher.
+ */
+async function compareDirs(origDirPath: string, refDirPath: string) {
+    const absOrigDirPath = path.resolve(origDirPath);
+    const absRefDirPath = path.resolve(refDirPath);
+    const refDirContent = await fs.readdir(absRefDirPath, {
+        recursive: true,
+        encoding: 'utf-8',
+    });
+    const refFileSubpaths = refDirContent.filter((subpath) =>
+        subpath.toLowerCase().endsWith('.xml'),
+    );
+    const logProgress = utils.createProgressLogger('Comparing', refFileSubpaths.length);
+
+    for (const refFileSubpath of refFileSubpaths) {
+        const absRefFilePath = path.join(absRefDirPath, refFileSubpath);
+        const [, , ...origFileSubpath] = refFileSubpath.split(path.sep);
+        const absOrigFilePath = path.join(absOrigDirPath, ...origFileSubpath);
+        logProgress(`...${path.sep}${origFileSubpath.join(path.sep)}`);
+        const [refFile, origFile] = await Promise.all([
+            fs.readFile(absRefFilePath, 'utf-8'),
+            fs.readFile(absOrigFilePath, 'utf-8'),
+        ]);
+
+        assert.equal(patcher.patchRawXML(origFile), refFile);
+    }
+}
 
 async function testFile(fileName: string) {
     const { input, out, desc } = await parseTestFile(fileName);
@@ -44,5 +90,3 @@ function test(name: string, cb: () => void) {
 function relPath(p: string) {
     return path.join(__dirname.replace('.tsc', 'src'), p);
 }
-
-(await fs.readdir(relPath('tests'))).forEach(testFile);
