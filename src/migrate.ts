@@ -6,6 +6,7 @@ import * as utils from './utils.js';
 import * as patcher from './patcher.js';
 import jsdom from 'jsdom';
 import commonPathPrefix from 'common-path-prefix';
+import * as types from './types.js';
 
 /*
 	!IMPORTANT!
@@ -47,7 +48,7 @@ async function migrate(
     }
     const destDirSubpath = absDestDirPath.replace(commonPath, '');
     const absKnownModsFilePath = path.resolve(knownModsFilePath);
-    const knownMods: utils.KnownMods = JSON.parse(await fs.readFile(absKnownModsFilePath, 'utf-8'));
+    const knownMods: types.KnownMods = JSON.parse(await fs.readFile(absKnownModsFilePath, 'utf-8'));
     const dirNames = await fs.readdir(absSrcDirPath, 'utf-8');
     const migrationIssues: MigrationIssues = {};
     const loadFoldersRecords: string[] = [];
@@ -135,7 +136,7 @@ function extractModsetsFromDoc(doc: Document) {
     const result = new ModsetCollection();
 
     utils.traverseElemTree(doc.documentElement, (elem) => {
-        if (utils.isUnpackablePOFM(elem)) result.add(extractModsetFromPOFM(elem));
+        if (patcher.isUnpackablePOFM(elem)) result.add(extractModsetFromPOFM(elem));
     });
 
     return result;
@@ -169,7 +170,7 @@ interface DirIssues {
     }[];
 }
 
-enum DirIssueType {
+const enum DirIssueType {
     /**
      * Directory doesn't contain patches.
      *
@@ -189,7 +190,7 @@ enum DirIssueType {
 function scanDirForIssues(
     files: LoadedFile[],
     modsets: ModsetCollection,
-    knownMods: utils.KnownMods,
+    knownMods: types.KnownMods,
 ): DirIssues {
     if (modsets.size === 0) return { [DirIssueType.NO_PATCHES]: true };
 
@@ -220,7 +221,7 @@ function scanDirForIssues(
     return result;
 }
 
-function scanModsetsForUnidentMods(modsets: ModsetCollection, knownMods: utils.KnownMods) {
+function scanModsetsForUnidentMods(modsets: ModsetCollection, knownMods: types.KnownMods) {
     const result: string[] = [];
 
     for (const modName of new Set(modsets.toArrayDeep().flat())) {
@@ -234,7 +235,7 @@ function createDirLoadFoldersRecord(
     destDirSubpath: string,
     dirName: string,
     modsets: ModsetCollection,
-    knownMods: utils.KnownMods,
+    knownMods: types.KnownMods,
 ) {
     const modNames = utils.dedupeArray(modsets.toArrayDeep().flat());
     const packageIds = utils.dedupeArray(modNames.flatMap((modName) => knownMods[modName]));

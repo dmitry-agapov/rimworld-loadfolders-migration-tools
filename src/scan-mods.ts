@@ -3,6 +3,7 @@ import path from 'node:path';
 import * as commander from 'commander';
 import jsdom from 'jsdom';
 import * as utils from './utils.js';
+import * as types from './types.js';
 
 commander.program
     .argument('<string>', 'Path to directory with mods.')
@@ -12,7 +13,7 @@ commander.program
         outFilePath = path.resolve(outFilePath);
         const dirContent = fs.readdirSync(dirPath);
         const filesToScan = dirContent.map((item) => path.join(dirPath, item, 'about/about.xml'));
-        const knownMods: utils.KnownMods = {
+        const knownMods: types.KnownMods = {
             Royalty: 'Ludeon.Rimworld.Royalty',
             Ideology: 'Ludeon.Rimworld.Ideology',
             Biotech: 'Ludeon.Rimworld.Biotech',
