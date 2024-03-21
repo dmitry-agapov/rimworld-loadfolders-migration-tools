@@ -17,7 +17,9 @@ commander.program
         if (origDirPath && refDirPath) {
             await compareDirs(origDirPath, refDirPath);
         } else {
-            (await fs.readdir(relPath('tests'))).forEach(testFile);
+            const absTestFilePaths = await fs.readdir(relPath('tests'));
+
+            await Promise.all(absTestFilePaths.map(testFile));
         }
 
         console.log('Done!');
@@ -74,7 +76,11 @@ async function parseTestFile(fileName: string) {
 
     if (!input || !out || !desc) throw new Error(`Invalid test file: ${fileName}`);
 
-    return { input: input.outerHTML, out: out.outerHTML, desc };
+    return { input: fixTestIndent(input.outerHTML), out: fixTestIndent(out.outerHTML), desc };
+}
+
+function fixTestIndent(str: string) {
+    return utils.mapStrLines(str, (line) => line.replace('\t', ''));
 }
 
 function test(name: string, cb: () => void) {
@@ -83,7 +89,20 @@ function test(name: string, cb: () => void) {
         console.log(`${chalk.green('[PASS]')}: ${name}`);
     } catch (e) {
         console.log(`${chalk.red('[FAIL]')}: ${name}`);
-        throw e;
+
+        if (e instanceof assert.AssertionError) {
+            console.log(
+                [
+                    `\n${e.message}\n`,
+                    `${chalk.green('Actual')}:`,
+                    `${e.actual}\n`,
+                    `${chalk.red('Expected')}:`,
+                    `${e.expected}\n`,
+                ].join('\n'),
+            );
+        } else {
+            console.dir(e);
+        }
     }
 }
 
