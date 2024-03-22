@@ -114,3 +114,35 @@ export function isEmptyObj(obj: {}) {
 export function objSize(obj: {}) {
     return Object.keys(obj).length;
 }
+
+export class KnownMods {
+    #value: Record<string, Set<string>> = {};
+    constructor(value: Record<string, string[]>) {
+        for (const [k, v] of Object.entries(value)) this.#value[k] = new Set(v);
+    }
+    add(name: string, packageId: string) {
+        if (this.#value[name]) {
+            this.#value[name]?.add(packageId);
+        } else {
+            this.#value[name] = new Set([packageId]);
+        }
+    }
+    get(name: string) {
+        const value = this.#value[name];
+
+        return value ? [...value] : undefined;
+    }
+    getNames() {
+        return Object.keys(this.#value);
+    }
+    toJSON() {
+        const result: Record<string, string[]> = {};
+
+        for (const [k, v] of Object.entries(this.#value)) result[k] = [...v];
+
+        return result;
+    }
+    static async fromFile(path: string) {
+        return new KnownMods(JSON.parse(await fs.readFile(path, 'utf-8')));
+    }
+}

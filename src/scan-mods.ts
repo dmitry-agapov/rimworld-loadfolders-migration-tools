@@ -3,50 +3,43 @@ import path from 'node:path';
 import * as commander from 'commander';
 import jsdom from 'jsdom';
 import * as utils from './utils.js';
-import * as types from './types.js';
 
 commander.program
-    .argument('<string>', 'Path to directory with mods.')
+    .argument(
+        '[string]',
+        'Path to directory with mods.',
+        'C:\\Program Files (x86)\\Steam\\steamapps\\workshop\\content\\294100',
+    )
     .argument('[string]', 'Output file path.', path.resolve('./known-mods.json'))
     .action((dirPath: string, outFilePath: string) => {
         dirPath = path.resolve(dirPath);
         outFilePath = path.resolve(outFilePath);
         const dirContent = fs.readdirSync(dirPath);
         const filesToScan = dirContent.map((item) => path.join(dirPath, item, 'about/about.xml'));
-        const knownMods: types.KnownMods = {
-            Royalty: 'Ludeon.Rimworld.Royalty',
-            Ideology: 'Ludeon.Rimworld.Ideology',
-            Biotech: 'Ludeon.Rimworld.Biotech',
-        };
+        const knownMods = new utils.KnownMods({
+            Royalty: ['Ludeon.Rimworld.Royalty'],
+            Ideology: ['Ludeon.Rimworld.Ideology'],
+            Biotech: ['Ludeon.Rimworld.Biotech'],
+        });
 
         for (const filePath of filesToScan) {
-            const [modName, packageId] = extractMetadata(filePath);
+            const file = fs.readFileSync(filePath, 'utf-8');
+            const { name, packageId } = extractModMetadata(file);
 
-            if (!modName || !packageId) continue;
-
-            const kmEntry = knownMods[modName];
-
-            if (!kmEntry) {
-                knownMods[modName] = packageId;
-            } else if (typeof kmEntry === 'string') {
-                knownMods[modName] = [kmEntry, packageId];
-            } else if (Array.isArray(kmEntry)) {
-                kmEntry.push(packageId);
-            }
+            if (name && packageId) knownMods.add(name, packageId);
         }
 
-        const outFile = utils.fixEOL(JSON.stringify(knownMods, undefined, 4));
+        const outFile = utils.fixEOL(JSON.stringify(knownMods));
 
         fs.writeFileSync(outFilePath, outFile, 'utf-8');
     })
     .parse();
 
-function extractMetadata(filePath: string) {
-    const file = fs.readFileSync(filePath);
-    const dom = new jsdom.JSDOM(file, { contentType: 'text/xml' });
+function extractModMetadata(xmlStr: string) {
+    const dom = new jsdom.JSDOM(xmlStr, { contentType: 'text/xml' });
     const root = dom.window.document.documentElement;
-    const modName = utils.getDirectChildByTagName(root, 'name')?.textContent?.trim();
+    const name = utils.getDirectChildByTagName(root, 'name')?.textContent?.trim();
     const packageId = utils.getDirectChildByTagName(root, 'packageId')?.textContent?.trim();
 
-    return [modName, packageId] as const;
+    return { name, packageId };
 }

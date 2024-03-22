@@ -16,7 +16,3 @@ export const enum NodeFilter {
     SHOW_DOCUMENT_FRAGMENT = 0x400,
     SHOW_NOTATION = 0x800,
 }
-
-export interface KnownMods {
-    [key: string]: string | string[];
-}

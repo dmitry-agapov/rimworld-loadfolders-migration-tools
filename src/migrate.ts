@@ -6,7 +6,6 @@ import * as utils from './utils.js';
 import * as patcher from './patcher.js';
 import jsdom from 'jsdom';
 import commonPathPrefix from 'common-path-prefix';
-import * as types from './types.js';
 
 /*
 	!IMPORTANT!
@@ -48,7 +47,7 @@ async function migrate(
     }
     const destDirSubpath = absDestDirPath.replace(commonPath, '');
     const absKnownModsFilePath = path.resolve(knownModsFilePath);
-    const knownMods: types.KnownMods = JSON.parse(await fs.readFile(absKnownModsFilePath, 'utf-8'));
+    const knownMods = await utils.KnownMods.fromFile(absKnownModsFilePath);
     const dirNames = await fs.readdir(absSrcDirPath, 'utf-8');
     const migrationIssues: MigrationIssues = {};
     const loadFoldersRecords: string[] = [];
@@ -190,7 +189,7 @@ const enum DirIssueType {
 function scanDirForIssues(
     files: LoadedFile[],
     modsets: ModsetCollection,
-    knownMods: types.KnownMods,
+    knownMods: utils.KnownMods,
 ): DirIssues {
     if (modsets.size === 0) return { [DirIssueType.NO_PATCHES]: true };
 
@@ -221,11 +220,11 @@ function scanDirForIssues(
     return result;
 }
 
-function scanModsetsForUnidentMods(modsets: ModsetCollection, knownMods: types.KnownMods) {
+function scanModsetsForUnidentMods(modsets: ModsetCollection, knownMods: utils.KnownMods) {
     const result: string[] = [];
 
     for (const modName of new Set(modsets.toArrayDeep().flat())) {
-        if (!knownMods[modName]) result.push(modName);
+        if (!knownMods.get(modName)) result.push(modName);
     }
 
     return result;
@@ -235,10 +234,23 @@ function createDirLoadFoldersRecord(
     destDirSubpath: string,
     dirName: string,
     modsets: ModsetCollection,
-    knownMods: types.KnownMods,
+    knownMods: utils.KnownMods,
 ) {
     const modNames = utils.dedupeArray(modsets.toArrayDeep().flat());
-    const packageIds = utils.dedupeArray(modNames.flatMap((modName) => knownMods[modName]));
+    const packageIds = utils.dedupeArray(
+        modNames.flatMap((modName) => {
+            const packageIds = knownMods.get(modName);
+
+            // This should never happen here.
+            if (!packageIds) {
+                throw new Error(
+                    `Unidentified mod found during <loadFolders> record generation. Mod name was: ${modName}`,
+                );
+            }
+
+            return packageIds;
+        }),
+    );
     const recordDirPath = `${destDirSubpath.replaceAll(path.sep, '/')}/${dirName}`;
 
     return `<li IfModActive="${packageIds.join(', ')}">${utils.escapeXMLStr(recordDirPath)}</li>`;
