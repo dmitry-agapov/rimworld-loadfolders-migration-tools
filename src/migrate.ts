@@ -236,7 +236,7 @@ function createDirLoadFoldersRecord(
     modsets: ModsetCollection,
     knownMods: utils.KnownMods,
 ) {
-    const modNames = utils.dedupeArray(modsets.toArrayDeep().flat());
+    const modNames = modsets.names;
     const packageIds = utils.dedupeArray(
         modNames.flatMap((modName) => {
             const packageIds = knownMods.get(modName);
@@ -331,5 +331,8 @@ class ModsetCollection {
     }
     get size() {
         return this.#sets.length;
+    }
+    get names() {
+        return utils.dedupeArray(this.toArrayDeep().flat());
     }
 }
