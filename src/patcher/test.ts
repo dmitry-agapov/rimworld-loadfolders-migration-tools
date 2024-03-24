@@ -38,9 +38,7 @@ async function compareDirs(origDirPath: string, refDirPath: string) {
         recursive: true,
         encoding: 'utf-8',
     });
-    const refFileSubpaths = refDirContent.filter((subpath) =>
-        subpath.toLowerCase().endsWith('.xml'),
-    );
+    const refFileSubpaths = refDirContent.filter(utils.hasXMLExt);
     const logProgress = utils.createProgressLogger('Comparing', refFileSubpaths.length);
 
     for (const refFileSubpath of refFileSubpaths) {

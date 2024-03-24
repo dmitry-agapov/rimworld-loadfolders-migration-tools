@@ -154,3 +154,7 @@ export class JSONAbleSet<T> extends Set<T> {
         return [...this];
     }
 }
+
+export function hasXMLExt(value: string) {
+    return path.extname(value).toLowerCase() === '.xml';
+}

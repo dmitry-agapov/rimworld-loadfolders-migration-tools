@@ -98,7 +98,7 @@ async function migrate(
 
 async function loadDirFiles(absDirPath: string) {
     const dirContent = await fs.readdir(absDirPath, { recursive: true, encoding: 'utf-8' });
-    const dirFileSubpaths = dirContent.filter((subpath) => subpath.toLowerCase().endsWith('.xml'));
+    const dirFileSubpaths = dirContent.filter(utils.hasXMLExt);
     const dirFiles: LoadedFile[] = [];
     const dirModsets = new ModsetCollection();
 
