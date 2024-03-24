@@ -60,20 +60,20 @@ async function migrate(
 
         const absDirPath = path.join(absSrcDirPath, dirName);
         const [dirFiles, dirModsets] = await loadDirFiles(absDirPath);
-        const dirIssues = scanDirForIssues(dirFiles, dirModsets, knownMods);
+        const [loadFoldersRecord, dirIssues] = tryCreateDirLoadFoldersRecord(
+            destDirSubpath,
+            dirName,
+            dirModsets,
+            dirFiles,
+            knownMods,
+        );
 
-        if (!utils.isEmptyObj(dirIssues)) {
-            migrationIssues[dirName] = dirIssues;
-        } else {
-            const loadFoldersRecord = createDirLoadFoldersRecord(
-                destDirSubpath,
-                dirName,
-                dirModsets,
-                knownMods,
-            );
+        if (loadFoldersRecord) {
             loadFoldersRecords.push(loadFoldersRecord);
 
             if (!skipPatching) await migrateDir(absDirPath, dirFiles, absDestDirPath);
+        } else if (dirIssues) {
+            migrationIssues[dirName] = dirIssues;
         }
     }
 
@@ -186,22 +186,36 @@ const enum DirIssueType {
     IS_COLLECTION = 'IS_COLLECTION',
 }
 
-function scanDirForIssues(
-    files: LoadedFile[],
+function tryCreateDirLoadFoldersRecord(
+    destDirSubpath: string,
+    dirName: string,
     modsets: ModsetCollection,
+    dirFiles: LoadedFile[],
     knownMods: utils.KnownMods,
-): DirIssues {
-    if (modsets.size === 0) return { [DirIssueType.NO_PATCHES]: true };
+): [string, undefined] | [undefined, DirIssues] {
+    if (modsets.size === 0) return [undefined, { [DirIssueType.NO_PATCHES]: true }];
 
-    const result: DirIssues = {};
-    const unidentMods = scanModsetsForUnidentMods(modsets, knownMods);
+    const issues: DirIssues = {};
+    const packageIds = new Set<string>();
+    const unidentMods = new Set<string>();
+    const modNames = modsets.names;
 
-    if (unidentMods.length > 0) result[DirIssueType.UNIDENT_MODS_FOUND] = unidentMods;
+    for (const modName of modNames) {
+        const modPackageIds = knownMods.get(modName);
+
+        if (!modPackageIds) {
+            unidentMods.add(modName);
+        } else {
+            for (const packageId of modPackageIds) packageIds.add(packageId);
+        }
+    }
+
+    if (unidentMods.size > 0) issues[DirIssueType.UNIDENT_MODS_FOUND] = [...unidentMods];
 
     if (modsets.size > 1) {
         const details: DirIssues[DirIssueType.IS_COLLECTION] = [];
 
-        for (const file of files) {
+        for (const file of dirFiles) {
             const detailsRecord = details.find((rec) => rec.modsets.isEqualTo(file.modsets));
 
             if (detailsRecord) {
@@ -214,46 +228,16 @@ function scanDirForIssues(
             }
         }
 
-        result[DirIssueType.IS_COLLECTION] = details;
+        issues[DirIssueType.IS_COLLECTION] = details;
     }
 
-    return result;
-}
+    if (!utils.isEmptyObj(issues)) return [undefined, issues];
 
-function scanModsetsForUnidentMods(modsets: ModsetCollection, knownMods: utils.KnownMods) {
-    const result: string[] = [];
-
-    for (const modName of new Set(modsets.toArrayDeep().flat())) {
-        if (!knownMods.get(modName)) result.push(modName);
-    }
-
-    return result;
-}
-
-function createDirLoadFoldersRecord(
-    destDirSubpath: string,
-    dirName: string,
-    modsets: ModsetCollection,
-    knownMods: utils.KnownMods,
-) {
-    const modNames = modsets.names;
-    const packageIds = utils.dedupeArray(
-        modNames.flatMap((modName) => {
-            const packageIds = knownMods.get(modName);
-
-            // This should never happen here.
-            if (!packageIds) {
-                throw new Error(
-                    `Unidentified mod found during <loadFolders> record generation. Mod name was: ${modName}`,
-                );
-            }
-
-            return packageIds;
-        }),
-    );
+    const packageIdsStr = [...packageIds].join(', ');
     const recordDirPath = `${destDirSubpath.replaceAll(path.sep, '/')}/${dirName}`;
+    const recordDirPathStr = utils.escapeXMLStr(recordDirPath);
 
-    return `<li IfModActive="${packageIds.join(', ')}">${utils.escapeXMLStr(recordDirPath)}</li>`;
+    return [`<li IfModActive="${packageIdsStr}">${recordDirPathStr}</li>`, undefined];
 }
 
 async function migrateDir(absSrcDirPath: string, files: LoadedFile[], absDestDirPath: string) {
