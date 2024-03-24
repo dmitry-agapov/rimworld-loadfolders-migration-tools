@@ -116,15 +116,15 @@ export function objSize(obj: {}) {
 }
 
 export class KnownMods {
-    #value: Record<string, Set<string>> = {};
+    #value: Record<string, JSONAbleSet<string>> = {};
     constructor(value: Record<string, string[]>) {
-        for (const [k, v] of Object.entries(value)) this.#value[k] = new Set(v);
+        for (const [k, v] of Object.entries(value)) this.#value[k] = new JSONAbleSet(v);
     }
     add(name: string, packageId: string) {
         if (this.#value[name]) {
             this.#value[name]?.add(packageId);
         } else {
-            this.#value[name] = new Set([packageId]);
+            this.#value[name] = new JSONAbleSet([packageId]);
         }
     }
     get(name: string) {
@@ -136,13 +136,15 @@ export class KnownMods {
         return Object.keys(this.#value);
     }
     toJSON() {
-        const result: Record<string, string[]> = {};
-
-        for (const [k, v] of Object.entries(this.#value)) result[k] = [...v];
-
-        return result;
+        return this.#value;
     }
     static async fromFile(path: string) {
         return new KnownMods(JSON.parse(await fs.readFile(path, 'utf-8')));
+    }
+}
+
+export class JSONAbleSet<T> extends Set<T> {
+    toJSON() {
+        return [...this];
     }
 }

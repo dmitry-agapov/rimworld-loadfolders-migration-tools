@@ -270,28 +270,16 @@ async function writeLoadFoldersRecordsFile(data: string[]) {
 
 async function writeMigrationIssuesFile(data: MigrationIssues) {
     const absFilePath = path.resolve('issues.json');
+    const json = JSON.stringify(data);
+    const file = utils.fixEOL(json);
 
-    await fs.writeFile(absFilePath, printMigrationIssues(data), 'utf-8');
+    await fs.writeFile(absFilePath, file, 'utf-8');
 
     return absFilePath;
 }
 
-function printMigrationIssues(data: MigrationIssues) {
-    const json = JSON.stringify(
-        data,
-        (_, value) => {
-            if (value instanceof ModsetCollection) return value.toArrayDeep();
-
-            return value;
-        },
-        '\t',
-    );
-
-    return utils.fixEOL(json);
-}
-
-const Modset = Set<string>;
-type Modset = Set<string>;
+const Modset = utils.JSONAbleSet<string>;
+type Modset = utils.JSONAbleSet<string>;
 
 class ModsetCollection {
     #sets: Modset[] = [];
@@ -310,7 +298,7 @@ class ModsetCollection {
     isEqualTo(set: ModsetCollection) {
         return this.size === set.size && this.#sets.every((item) => set.has(item));
     }
-    has(value: Modset) {
+    has(value: Set<string>) {
         return !!this.#sets.find((item) => utils.isEqSets(item, value));
     }
     get size() {
@@ -318,5 +306,8 @@ class ModsetCollection {
     }
     get names() {
         return utils.dedupeArray(this.toArrayDeep().flat());
+    }
+    toJSON() {
+        return this.#sets;
     }
 }
