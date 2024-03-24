@@ -3,6 +3,7 @@ import path from 'node:path';
 import * as commander from 'commander';
 import jsdom from 'jsdom';
 import * as utils from './utils.js';
+import * as types from './types.js';
 
 commander.program
     .argument(
@@ -35,11 +36,17 @@ commander.program
     })
     .parse();
 
-function extractModMetadata(xmlStr: string) {
+function extractModMetadata(xmlStr: string): {
+    name: types.ModName | undefined;
+    packageId: types.ModPackageId | undefined;
+} {
     const dom = new jsdom.JSDOM(xmlStr, { contentType: 'text/xml' });
     const root = dom.window.document.documentElement;
     const name = utils.getDirectChildByTagName(root, 'name')?.textContent?.trim();
     const packageId = utils.getDirectChildByTagName(root, 'packageId')?.textContent?.trim();
 
-    return { name, packageId };
+    return {
+        name: name as types.BaseToOpaque<typeof name, types.ModName>,
+        packageId: packageId as types.BaseToOpaque<typeof packageId, types.ModPackageId>,
+    };
 }

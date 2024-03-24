@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import process from 'node:process';
+import * as types from './types.js';
 
 export function fixEOL(str: string) {
     return str.replaceAll('\n', os.EOL);
@@ -116,18 +117,23 @@ export function objSize(obj: {}) {
 }
 
 export class KnownMods {
-    #value: Record<string, JSONAbleSet<string>> = {};
+    #value: Record<types.ModName, JSONAbleSet<types.ModPackageId>> = {};
     constructor(value: Record<string, string[]>) {
-        for (const [k, v] of Object.entries(value)) this.#value[k] = new JSONAbleSet(v);
+        for (const [k, v] of Object.entries(value)) {
+            const modName = k as types.BaseToOpaque<typeof k, types.ModName>;
+            const packageIds = v as types.BaseToOpaque<typeof v, types.ModPackageId[]>;
+
+            this.#value[modName] = new JSONAbleSet(packageIds);
+        }
     }
-    add(name: string, packageId: string) {
+    add(name: types.ModName, packageId: types.ModPackageId) {
         if (this.#value[name]) {
             this.#value[name]?.add(packageId);
         } else {
             this.#value[name] = new JSONAbleSet([packageId]);
         }
     }
-    get(name: string) {
+    get(name: types.ModName): types.ModPackageId[] | undefined {
         const value = this.#value[name];
 
         return value ? [...value] : undefined;

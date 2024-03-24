@@ -6,6 +6,7 @@ import * as utils from './utils.js';
 import * as patcher from './patcher.js';
 import jsdom from 'jsdom';
 import commonPathPrefix from 'common-path-prefix';
+import * as types from './types.js';
 
 /*
 	!IMPORTANT!
@@ -150,9 +151,11 @@ function extractModsetFromPOFM(elem: Element) {
     const modEntries = utils.getAllDirectChildrenByTagName(modsElem, 'li');
 
     for (const modEntry of modEntries) {
-        if (!modEntry.textContent) continue;
+        if (modEntry.textContent) {
+            const modName = modEntry.textContent.trim();
 
-        result.add(modEntry.textContent.trim());
+            result.add(modName as types.BaseToOpaque<typeof modName, types.ModName>);
+        }
     }
 
     return result;
@@ -162,7 +165,7 @@ type MigrationIssues = Record<string, DirIssues>;
 
 interface DirIssues {
     [DirIssueType.NO_PATCHES]?: true;
-    [DirIssueType.UNIDENT_MODS_FOUND]?: string[];
+    [DirIssueType.UNIDENT_MODS_FOUND]?: types.ModName[];
     [DirIssueType.IS_COLLECTION]?: {
         modsets: ModsetCollection;
         files: string[];
@@ -196,8 +199,8 @@ function tryCreateDirLoadFoldersRecord(
     if (modsets.size === 0) return [undefined, { [DirIssueType.NO_PATCHES]: true }];
 
     const issues: DirIssues = {};
-    const packageIds = new Set<string>();
-    const unidentMods = new Set<string>();
+    const packageIds = new Set<types.ModPackageId>();
+    const unidentMods = new Set<types.ModName>();
     const modNames = modsets.names;
 
     for (const modName of modNames) {
@@ -278,8 +281,8 @@ async function writeMigrationIssuesFile(data: MigrationIssues) {
     return absFilePath;
 }
 
-const Modset = utils.JSONAbleSet<string>;
-type Modset = utils.JSONAbleSet<string>;
+const Modset = utils.JSONAbleSet<types.ModName>;
+type Modset = utils.JSONAbleSet<types.ModName>;
 
 class ModsetCollection {
     #sets: Modset[] = [];
@@ -304,7 +307,7 @@ class ModsetCollection {
     get size() {
         return this.#sets.length;
     }
-    get names() {
+    get names(): types.ModName[] {
         return utils.dedupeArray(this.toArrayDeep().flat());
     }
     toJSON() {
