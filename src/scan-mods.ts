@@ -42,8 +42,10 @@ function extractModMetadata(xmlStr: string): {
 } {
     const dom = new jsdom.JSDOM(xmlStr, { contentType: 'text/xml' });
     const root = dom.window.document.documentElement;
-    const name = utils.getDirectChildByTagName(root, 'name')?.textContent?.trim();
-    const packageId = utils.getDirectChildByTagName(root, 'packageId')?.textContent?.trim();
+    const name = utils.getDirectChildByTagName(root, types.ElemTagName.name)?.textContent?.trim();
+    const packageId = utils
+        .getDirectChildByTagName(root, types.ElemTagName.packageId)
+        ?.textContent?.trim();
 
     return {
         name: name as types.BaseToOpaque<typeof name, types.ModName>,

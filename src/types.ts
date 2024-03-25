@@ -41,3 +41,20 @@ type GetBase<T extends Opaque<unknown> | Opaque<unknown>[]> =
 export type ModName = Opaque<string, 'ModName'>;
 
 export type ModPackageId = Opaque<string, 'ModPackageId'>;
+
+export const enum PatchOpType {
+    FindMod = 'PatchOperationFindMod',
+    Sequence = 'PatchOperationSequence',
+}
+
+export const enum ElemTagName {
+    Patch = 'Patch',
+    Operation = 'Operation',
+    operations = 'operations',
+    li = 'li',
+    match = 'match',
+    nomatch = 'nomatch',
+    mods = 'mods',
+    name = 'name',
+    packageId = 'packageId',
+}

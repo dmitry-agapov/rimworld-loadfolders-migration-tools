@@ -21,7 +21,7 @@ export function traverseElemTree(root: Element, cb: (elem: Element) => void) {
  * ```
  * Because as of 18.03.2024 it produces inconsistent results.
  */
-export function getDirectChildByTagName(elem: Element, tagName: string) {
+export function getDirectChildByTagName(elem: Element, tagName: types.ElemTagName) {
     for (const child of elem.children) {
         if (child.tagName === tagName) return child;
     }
@@ -29,7 +29,7 @@ export function getDirectChildByTagName(elem: Element, tagName: string) {
     return;
 }
 
-export function getAllDirectChildrenByTagName(elem: Element, tagName: string) {
+export function getAllDirectChildrenByTagName(elem: Element, tagName: types.ElemTagName) {
     const result = [];
 
     for (const child of elem.children) {

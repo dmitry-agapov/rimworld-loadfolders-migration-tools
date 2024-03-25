@@ -13,36 +13,36 @@ export function patchRawXML(xml: string | Buffer): string {
 export function patchDOC(doc: Document) {
     utils.traverseElemTree(doc.documentElement, (elem) => {
         // Unpack all unnecessary 'PatchOperationSequence'.
-        if (isUnpackablePOS(elem)) unpackPOS(elem);
+        if (isUnpackablePatchOpSeq(elem)) unpackPatchOpSeq(elem);
 
         // Unpack all top 'PatchOperationFindMod'.
-        if (isUnpackablePOFM(elem)) unpackPOFM(elem);
+        if (isUnpackablePatchOpFindMod(elem)) unpackPatchOpFindMod(elem);
     });
 }
 
-export function isUnpackablePOFM(elem: Element) {
+export function isUnpackablePatchOpFindMod(elem: Element) {
     return (
-        elem.getAttribute('Class') === 'PatchOperationFindMod' &&
-        !utils.getDirectChildByTagName(elem, 'nomatch') &&
-        !isDescendantOfPOFM(elem)
+        isPatchOpOfType(elem, types.PatchOpType.FindMod) &&
+        !utils.getDirectChildByTagName(elem, types.ElemTagName.nomatch) &&
+        !isDescendantOfPatchOpFindMod(elem)
     );
 }
 
-function isDescendantOfPOFM({ parentElement }: Element) {
+function isDescendantOfPatchOpFindMod({ parentElement }: Element) {
     if (!parentElement) return false;
 
-    if (parentElement.getAttribute('Class') === 'PatchOperationFindMod') return true;
+    if (isPatchOpOfType(parentElement, types.PatchOpType.FindMod)) return true;
 
-    return isDescendantOfPOFM(parentElement);
+    return isDescendantOfPatchOpFindMod(parentElement);
 }
 
-function unpackPOFM(elem: Element) {
-    const matchElem = utils.getDirectChildByTagName(elem, 'match');
+function unpackPatchOpFindMod(elem: Element) {
+    const matchElem = utils.getDirectChildByTagName(elem, types.ElemTagName.match);
 
     if (!matchElem) return;
 
-    if (isUnpackablePOS(matchElem, elem)) {
-        unpackPOS(matchElem, elem);
+    if (isUnpackablePatchOpSeq(matchElem, elem)) {
+        unpackPatchOpSeq(matchElem, elem);
     } else {
         subtractIndent(matchElem, 1);
 
@@ -50,19 +50,21 @@ function unpackPOFM(elem: Element) {
     }
 }
 
-function isUnpackablePOS(elem: Element, target: Element = elem) {
+function isUnpackablePatchOpSeq(elem: Element, target: Element = elem) {
     return (
-        elem.getAttribute('Class') === 'PatchOperationSequence' &&
-        (isTopPatchOp(target) || target.tagName === 'li')
+        isPatchOpOfType(elem, types.PatchOpType.Sequence) &&
+        (isTopPatchOp(target) || target.tagName === types.ElemTagName.li)
     );
 }
 
 function isTopPatchOp({ tagName, parentElement, ownerDocument }: Element) {
-    return tagName === 'Operation' && parentElement === ownerDocument.documentElement;
+    return (
+        tagName === types.ElemTagName.Operation && parentElement === ownerDocument.documentElement
+    );
 }
 
-function unpackPOS(elem: Element, target: Element = elem) {
-    const opsElem = utils.getDirectChildByTagName(elem, 'operations');
+function unpackPatchOpSeq(elem: Element, target: Element = elem) {
+    const opsElem = utils.getDirectChildByTagName(elem, types.ElemTagName.operations);
 
     if (!opsElem) return;
 
@@ -122,4 +124,8 @@ function getRelElemDepth(elem1: Element, elem2: Element, depth = 0): number {
     if (elem1 === elem2 || !elem2.parentElement) return depth;
 
     return getRelElemDepth(elem1, elem2.parentElement, depth + 1);
+}
+
+function isPatchOpOfType(elem: Element, type: types.PatchOpType) {
+    return elem.getAttribute('Class') === type;
 }

@@ -136,7 +136,7 @@ function extractModsetsFromDoc(doc: Document) {
     const result = new ModsetCollection();
 
     utils.traverseElemTree(doc.documentElement, (elem) => {
-        if (patcher.isUnpackablePOFM(elem)) result.add(extractModsetFromPOFM(elem));
+        if (patcher.isUnpackablePatchOpFindMod(elem)) result.add(extractModsetFromPOFM(elem));
     });
 
     return result;
@@ -144,11 +144,11 @@ function extractModsetsFromDoc(doc: Document) {
 
 function extractModsetFromPOFM(elem: Element) {
     const result = new Modset();
-    const modsElem = utils.getDirectChildByTagName(elem, 'mods');
+    const modsElem = utils.getDirectChildByTagName(elem, types.ElemTagName.mods);
 
     if (!modsElem) return result;
 
-    const modEntries = utils.getAllDirectChildrenByTagName(modsElem, 'li');
+    const modEntries = utils.getAllDirectChildrenByTagName(modsElem, types.ElemTagName.li);
 
     for (const modEntry of modEntries) {
         if (modEntry.textContent) {

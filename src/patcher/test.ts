@@ -7,6 +7,7 @@ import jsdom from 'jsdom';
 import * as patcher from '../patcher.js';
 import * as utils from '../utils.js';
 import * as commander from 'commander';
+import * as types from '../types.js';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
@@ -68,7 +69,7 @@ async function parseTestFile(fileName: string) {
     });
     const root = dom.window.document.documentElement;
     const desc = root.getAttribute('description');
-    let [input, out] = utils.getAllDirectChildrenByTagName(root, 'Patch');
+    let [input, out] = utils.getAllDirectChildrenByTagName(root, types.ElemTagName.Patch);
 
     if (!out && root.getAttribute('outputIsEqualToInput')) out = input;
 
