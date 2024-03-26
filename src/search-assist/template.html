@@ -4,17 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mods Index</title>
-
-    <style>
-        .match {
-            color: rgb(53, 129, 87);
-        }
-    </style>
+    <title>Unidentified mods</title>
 </head>
 
 <body>
-    CONTENT_ANCHOR
+	<a href="/download">Download "known mods" file</a>
+	<ul>
+		CONTENT_ANCHOR
+	</ul>
     <script>
         (async () => {
             const response = await fetch("/stream", {
@@ -23,28 +20,21 @@
                 },
             });
 
-            if (!response.ok) {
-                throw Error(response.statusText());
-            }
+            if (!response.ok) throw Error(response.statusText());
 
             for (const reader = response.body.getReader(); ;) {
                 const { value, done } = await reader.read();
 
-                if (done) {
-                    break;
-                }
+                if (done) break;
 
                 const chunk = new TextDecoder().decode(value);
                 const subChunks = chunk.split(/(?<=})\n\ndata: (?={)/);
 
                 for (const subChunk of subChunks) {
                     const payload = subChunk.replace(/^data: /, "");
+					const elem = document.querySelector(`[data-mod-name="${payload.trim()}"]`);
 
-                    window.document.querySelectorAll(`a[data-mod-name="${payload.trim()}"]`).forEach(item => {
-                        if (!item.classList.contains('match')) {
-                            item.classList.add('match');
-                        }
-                    })
+					if (elem) elem.remove();
                 }
             }
         })();

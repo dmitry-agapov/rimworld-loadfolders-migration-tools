@@ -10,12 +10,12 @@
         "compile:watch": "tsc -w",
         "patcher:test": "node --enable-source-maps ./.tsc/patcher/test.js",
         "scan-mods": "node --enable-source-maps ./.tsc/scan-mods.js",
-        "migrate": "node --enable-source-maps ./.tsc/migrate.js"
+        "migrate": "node --enable-source-maps ./.tsc/migrate.js",
+        "search-assist": "node --enable-source-maps ./.tsc/search-assist.js"
     },
     "dependencies": {
         "@types/express": "^4.17.21",
         "@types/jsdom": "^21.1.6",
-        "@types/xml2js": "^0.4.14",
         "chalk": "^5.3.0",
         "chokidar": "^3.6.0",
         "commander": "^12.0.0",
@@ -23,8 +23,7 @@
         "express": "^4.18.2",
         "jsdom": "^24.0.0",
         "tslib": "^2.6.2",
-        "typescript": "^5.4.2",
-        "xml2js": "^0.6.2"
+        "typescript": "^5.4.2"
     },
     "devDependencies": {
         "prettier": "^3.2.5"

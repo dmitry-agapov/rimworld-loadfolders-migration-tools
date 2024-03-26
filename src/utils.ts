@@ -3,6 +3,7 @@ import path from 'node:path';
 import os from 'node:os';
 import process from 'node:process';
 import * as types from './types.js';
+import jsdom from 'jsdom';
 
 export function fixEOL(str: string) {
     return str.replaceAll('\n', os.EOL);
@@ -157,4 +158,22 @@ export class JSONAbleSet<T> extends Set<T> {
 
 export function hasXMLExt(value: string) {
     return path.extname(value).toLowerCase() === '.xml';
+}
+
+export function extractModMetadata(xmlStr: string): {
+    name: types.ModName | undefined;
+    packageId: types.ModPackageId | undefined;
+} {
+    const dom = new jsdom.JSDOM(xmlStr, { contentType: 'text/xml' });
+    const root = dom.window.document.documentElement;
+    const name = getDirectChildByTagName(root, types.ElemTagName.name)?.textContent?.trim();
+    const packageId = getDirectChildByTagName(
+        root,
+        types.ElemTagName.packageId,
+    )?.textContent?.trim();
+
+    return {
+        name: name as types.BaseToOpaque<typeof name, types.ModName>,
+        packageId: packageId as types.BaseToOpaque<typeof packageId, types.ModPackageId>,
+    };
 }

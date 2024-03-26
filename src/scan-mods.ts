@@ -1,9 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import * as commander from 'commander';
-import jsdom from 'jsdom';
 import * as utils from './utils.js';
-import * as types from './types.js';
 
 commander.program
     .argument(
@@ -25,7 +23,7 @@ commander.program
 
         for (const filePath of filesToScan) {
             const file = fs.readFileSync(filePath, 'utf-8');
-            const { name, packageId } = extractModMetadata(file);
+            const { name, packageId } = utils.extractModMetadata(file);
 
             if (name && packageId) knownMods.add(name, packageId);
         }
@@ -35,20 +33,3 @@ commander.program
         fs.writeFileSync(outFilePath, outFile, 'utf-8');
     })
     .parse();
-
-function extractModMetadata(xmlStr: string): {
-    name: types.ModName | undefined;
-    packageId: types.ModPackageId | undefined;
-} {
-    const dom = new jsdom.JSDOM(xmlStr, { contentType: 'text/xml' });
-    const root = dom.window.document.documentElement;
-    const name = utils.getDirectChildByTagName(root, types.ElemTagName.name)?.textContent?.trim();
-    const packageId = utils
-        .getDirectChildByTagName(root, types.ElemTagName.packageId)
-        ?.textContent?.trim();
-
-    return {
-        name: name as types.BaseToOpaque<typeof name, types.ModName>,
-        packageId: packageId as types.BaseToOpaque<typeof packageId, types.ModPackageId>,
-    };
-}
