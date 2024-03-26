@@ -11,6 +11,7 @@ import * as utils from './utils.js';
 import { MigrationIssuesRaw, DirIssueType } from './MigrationIssues.js';
 import { KnownMods } from './KnownMods.js';
 import * as defaultPaths from './defaultPaths.js';
+import os from 'node:os';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
@@ -30,7 +31,11 @@ interface ProgramOptions {
 }
 
 commander.program
-    .argument('[string]', "RimWorld's Steam Workshop directory path.", defaultPaths.steamWsDirWin)
+    .argument(
+        os.type() === 'Windows_NT' ? '[string]' : '<string>',
+        "RimWorld's Steam Workshop directory path.",
+        os.type() === 'Windows_NT' ? defaultPaths.steamWsDirWin : undefined,
+    )
     .argument('[string]', '"Issues" file path.', defaultPaths.issuesFile)
     .argument('[string]', '"Known mods" file path.', defaultPaths.knownModsFile)
     .option('-p <number>', 'Port', '8080')

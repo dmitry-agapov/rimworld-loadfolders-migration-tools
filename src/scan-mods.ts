@@ -4,9 +4,14 @@ import * as commander from 'commander';
 import * as utils from './utils.js';
 import { KnownMods } from './KnownMods.js';
 import * as defaultPaths from './defaultPaths.js';
+import os from 'node:os';
 
 commander.program
-    .argument('[string]', 'Path to directory with mods.', defaultPaths.steamWsDirWin)
+    .argument(
+        os.type() === 'Windows_NT' ? '[string]' : '<string>',
+        'Path to directory with mods.',
+        os.type() === 'Windows_NT' ? defaultPaths.steamWsDirWin : undefined,
+    )
     .argument('[string]', 'Output file path.', defaultPaths.knownModsFile)
     .action(async (dirPath: string, outFilePath: string) => {
         dirPath = path.resolve(dirPath);
