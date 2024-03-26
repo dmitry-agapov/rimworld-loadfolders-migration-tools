@@ -9,6 +9,7 @@ import commonPathPrefix from 'common-path-prefix';
 import * as types from './types.js';
 import { ModsetCollection, Modset } from './ModsetCollection.js';
 import { MigrationIssues, DirIssues, DirIssueType } from './MigrationIssues.js';
+import { KnownMods } from './KnownMods.js';
 
 /*
 	!IMPORTANT!
@@ -52,7 +53,7 @@ async function migrate(
     }
     const destDirSubpath = absDestDirPath.replace(commonPath, '');
     const absKnownModsFilePath = path.resolve(knownModsFilePath);
-    const knownMods = await utils.KnownMods.fromFile(absKnownModsFilePath);
+    const knownMods = await KnownMods.fromFile(absKnownModsFilePath);
     const dirNames = await fs.readdir(absSrcDirPath, 'utf-8');
     const migrationIssues: MigrationIssues = {};
     const loadFoldersRecords: string[] = [];
@@ -172,7 +173,7 @@ function tryCreateDirLoadFoldersRecord(
     dirName: string,
     modsets: ModsetCollection,
     dirFiles: LoadedFile[],
-    knownMods: utils.KnownMods,
+    knownMods: KnownMods,
 ): [string, undefined] | [undefined, DirIssues] {
     if (modsets.size === 0) return [undefined, { [DirIssueType.NO_PATCHES]: true }];
 

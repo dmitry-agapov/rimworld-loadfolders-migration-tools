@@ -9,6 +9,7 @@ import EventEmitter from 'node:events';
 import * as types from './types.js';
 import * as utils from './utils.js';
 import { MigrationIssuesRaw, DirIssueType } from './MigrationIssues.js';
+import { KnownMods } from './KnownMods.js';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
@@ -49,12 +50,12 @@ commander.program
             const port = Number(p);
             const issuesFile = await fs.readFile(absIssuesFilePath, 'utf-8');
             const issues: MigrationIssuesRaw = JSON.parse(issuesFile);
-            let knownMods: utils.KnownMods;
+            let knownMods: KnownMods;
             try {
-                knownMods = await utils.KnownMods.fromFile(absKnownModsFilePath);
+                knownMods = await KnownMods.fromFile(absKnownModsFilePath);
                 console.log(`Using "known mods" collection from ${absKnownModsFilePath}`);
             } catch {
-                knownMods = new utils.KnownMods({});
+                knownMods = new KnownMods({});
                 console.log('Using empty "known mods" collection.');
             }
             const unidentMods = extractAllUnidentModsFromMigrationIssues(issues, knownMods);
@@ -158,7 +159,7 @@ async function handleFileCreatedEvent(filePath: string) {
 
 function extractAllUnidentModsFromMigrationIssues(
     issues: MigrationIssuesRaw,
-    knownMods: utils.KnownMods,
+    knownMods: KnownMods,
 ) {
     const result = new Set<string>();
 

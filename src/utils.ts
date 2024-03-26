@@ -121,39 +121,6 @@ export function objSize(obj: {}) {
     return Object.keys(obj).length;
 }
 
-export class KnownMods {
-    #value: Record<types.ModName, JSONAbleSet<types.ModPackageId>> = {};
-    constructor(value: Record<string, string[]>) {
-        for (const [k, v] of Object.entries(value)) {
-            const modName = k as types.BaseToOpaque<typeof k, types.ModName>;
-            const packageIds = v as types.BaseToOpaque<typeof v, types.ModPackageId[]>;
-
-            this.#value[modName] = new JSONAbleSet(packageIds);
-        }
-    }
-    add(name: types.ModName, packageId: types.ModPackageId) {
-        if (this.#value[name]) {
-            this.#value[name]?.add(packageId);
-        } else {
-            this.#value[name] = new JSONAbleSet([packageId]);
-        }
-    }
-    get(name: types.ModName): types.ModPackageId[] | undefined {
-        const value = this.#value[name];
-
-        return value ? [...value] : undefined;
-    }
-    getNames() {
-        return Object.keys(this.#value);
-    }
-    toJSON() {
-        return this.#value;
-    }
-    static async fromFile(path: string) {
-        return new KnownMods(JSON.parse(await fs.readFile(path, 'utf-8')));
-    }
-}
-
 export class JSONAbleSet<T> extends Set<T> {
     toJSON() {
         return [...this];

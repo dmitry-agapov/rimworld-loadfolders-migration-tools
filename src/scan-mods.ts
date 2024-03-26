@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import * as commander from 'commander';
 import * as utils from './utils.js';
+import { KnownMods } from './KnownMods.js';
 
 commander.program
     .argument(
@@ -15,7 +16,7 @@ commander.program
         outFilePath = path.resolve(outFilePath);
         const dirContent = await fs.readdir(dirPath, 'utf-8');
         const filesToScan = dirContent.map((item) => path.join(dirPath, item, 'about/about.xml'));
-        const knownMods = new utils.KnownMods({
+        const knownMods = new KnownMods({
             Royalty: ['Ludeon.Rimworld.Royalty'],
             Ideology: ['Ludeon.Rimworld.Ideology'],
             Biotech: ['Ludeon.Rimworld.Biotech'],
