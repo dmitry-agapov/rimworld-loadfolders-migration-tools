@@ -10,6 +10,7 @@ import * as types from './types.js';
 import { ModsetCollection, Modset } from './ModsetCollection.js';
 import { MigrationIssues, DirIssues, DirIssueType } from './MigrationIssues.js';
 import { KnownMods } from './KnownMods.js';
+import * as defaultPaths from './defaultPaths.js';
 
 /*
 	!IMPORTANT!
@@ -28,7 +29,7 @@ commander.program
         '<string>',
         'Destination directory path. Must share common path with source directory.',
     )
-    .argument('<string>', '"Known mods" file path.')
+    .argument('[string]', '"Known mods" file path.', defaultPaths.knownModsFile)
     .option('--skip-dirs <strings...>', 'Directory names to skip.', [])
     .option('--skip-patching', 'Skip patching.', false)
     .option('--overwrite-files', 'Overwrite files.', false)
@@ -251,7 +252,7 @@ async function migrateDir(
 }
 
 async function writeLoadFoldersRecordsFile(data: string[]) {
-    const absFilePath = path.resolve('load-folders-records.xml');
+    const absFilePath = defaultPaths.loadFoldersRecordsFile;
 
     await fs.writeFile(absFilePath, data.join(os.EOL), 'utf-8');
 
@@ -259,7 +260,7 @@ async function writeLoadFoldersRecordsFile(data: string[]) {
 }
 
 async function writeMigrationIssuesFile(data: MigrationIssues) {
-    const absFilePath = path.resolve('issues.json');
+    const absFilePath = defaultPaths.issuesFile;
     const json = JSON.stringify(data);
     const file = utils.fixEOL(json);
 

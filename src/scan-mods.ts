@@ -3,14 +3,11 @@ import path from 'node:path';
 import * as commander from 'commander';
 import * as utils from './utils.js';
 import { KnownMods } from './KnownMods.js';
+import * as defaultPaths from './defaultPaths.js';
 
 commander.program
-    .argument(
-        '[string]',
-        'Path to directory with mods.',
-        'C:\\Program Files (x86)\\Steam\\steamapps\\workshop\\content\\294100',
-    )
-    .argument('[string]', 'Output file path.', path.resolve('./known-mods.json'))
+    .argument('[string]', 'Path to directory with mods.', defaultPaths.steamWsDirWin)
+    .argument('[string]', 'Output file path.', defaultPaths.knownModsFile)
     .action(async (dirPath: string, outFilePath: string) => {
         dirPath = path.resolve(dirPath);
         outFilePath = path.resolve(outFilePath);

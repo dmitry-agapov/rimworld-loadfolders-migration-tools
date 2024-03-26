@@ -10,6 +10,7 @@ import * as types from './types.js';
 import * as utils from './utils.js';
 import { MigrationIssuesRaw, DirIssueType } from './MigrationIssues.js';
 import { KnownMods } from './KnownMods.js';
+import * as defaultPaths from './defaultPaths.js';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
@@ -29,13 +30,9 @@ interface ProgramOptions {
 }
 
 commander.program
-    .argument(
-        '[string]',
-        "Path to RimWorld's Steam Workshop directory.",
-        'C:\\Program Files (x86)\\Steam\\steamapps\\workshop\\content\\294100',
-    )
-    .argument('[string]', '"Issues" file path.', path.resolve(__dirname, '../issues.json'))
-    .argument('[string]', '"Known mods" file path.', path.resolve(__dirname, '../known-mods.json'))
+    .argument('[string]', "RimWorld's Steam Workshop directory path.", defaultPaths.steamWsDirWin)
+    .argument('[string]', '"Issues" file path.', defaultPaths.issuesFile)
+    .argument('[string]', '"Known mods" file path.', defaultPaths.knownModsFile)
     .option('-p <number>', 'Port', '8080')
     .action(
         async (
