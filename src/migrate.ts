@@ -18,6 +18,7 @@ import { MigrationIssues, DirIssues, DirIssueType } from './MigrationIssues.js';
 interface ProgramOptions {
     skipDirs: string[];
     skipPatching: boolean;
+    overwriteFiles: boolean;
 }
 
 commander.program
@@ -29,6 +30,7 @@ commander.program
     .argument('<string>', '"Known mods" file path.')
     .option('--skip-dirs <strings...>', 'Directory names to skip.', [])
     .option('--skip-patching', 'Skip patching.', false)
+    .option('--overwrite-files', 'Overwrite files.', false)
     .action(migrate)
     .parseAsync();
 
@@ -36,7 +38,7 @@ async function migrate(
     srcDirPath: string,
     destDirPath: string,
     knownModsFilePath: string,
-    { skipDirs, skipPatching }: ProgramOptions,
+    { skipDirs, skipPatching, overwriteFiles }: ProgramOptions,
 ) {
     const absSrcDirPath = path.resolve(srcDirPath);
     const absDestDirPath = path.resolve(destDirPath);
@@ -74,7 +76,9 @@ async function migrate(
         if (loadFoldersRecord) {
             loadFoldersRecords.push(loadFoldersRecord);
 
-            if (!skipPatching) await migrateDir(absDirPath, dirFiles, absDestDirPath);
+            if (!skipPatching) {
+                await migrateDir(absDirPath, dirFiles, absDestDirPath, overwriteFiles);
+            }
         } else if (dirIssues) {
             migrationIssues[dirName] = dirIssues;
         }
@@ -217,7 +221,12 @@ function tryCreateDirLoadFoldersRecord(
     return [`<li IfModActive="${packageIdsStr}">${recordDirPathStr}</li>`, undefined];
 }
 
-async function migrateDir(absSrcDirPath: string, files: LoadedFile[], absDestDirPath: string) {
+async function migrateDir(
+    absSrcDirPath: string,
+    files: LoadedFile[],
+    absDestDirPath: string,
+    overwriteFiles: boolean,
+) {
     for (const file of files) {
         patcher.patchDOC(file.dom.window.document);
 
@@ -231,7 +240,10 @@ async function migrateDir(absSrcDirPath: string, files: LoadedFile[], absDestDir
             file.subpath,
         );
 
-        await utils.writeFileRecursive(absFilePath, patchedFileStr, 'utf-8');
+        await utils.writeFileRecursive(absFilePath, patchedFileStr, {
+            encoding: 'utf-8',
+            flag: overwriteFiles ? 'w' : 'wx',
+        });
     }
 
     await fs.rm(absSrcDirPath, { recursive: true });

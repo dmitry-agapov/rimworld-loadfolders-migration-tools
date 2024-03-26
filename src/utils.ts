@@ -48,7 +48,11 @@ export function attachXMLDocDecl(str: string) {
     return '<?xml version="1.0" encoding="utf-8"?>\n' + str;
 }
 
-export async function writeFileRecursive(destPath: string, file: string, options?: BufferEncoding) {
+export async function writeFileRecursive(
+    destPath: string,
+    file: Parameters<typeof fs.writeFile>[1],
+    options?: Parameters<typeof fs.writeFile>[2],
+) {
     await fs.mkdir(path.dirname(destPath), { recursive: true });
     await fs.writeFile(destPath, file, options);
 }
