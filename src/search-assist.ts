@@ -52,7 +52,7 @@ commander.program
                 knownMods = await KnownMods.fromFile(absKnownModsFilePath);
                 console.log(`Using "known mods" collection from ${absKnownModsFilePath}`);
             } catch {
-                knownMods = new KnownMods({});
+                knownMods = new KnownMods();
                 console.log('Using empty "known mods" collection.');
             }
             const unidentMods = extractAllUnidentModsFromMigrationIssues(issues, knownMods);

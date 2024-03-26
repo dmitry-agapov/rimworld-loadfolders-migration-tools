@@ -13,11 +13,7 @@ commander.program
         outFilePath = path.resolve(outFilePath);
         const dirContent = await fs.readdir(dirPath, 'utf-8');
         const filesToScan = dirContent.map((item) => path.join(dirPath, item, 'about/about.xml'));
-        const knownMods = new KnownMods({
-            Royalty: ['Ludeon.Rimworld.Royalty'],
-            Ideology: ['Ludeon.Rimworld.Ideology'],
-            Biotech: ['Ludeon.Rimworld.Biotech'],
-        });
+        const knownMods = new KnownMods();
         const logProgress = utils.createProgressLogger('Scanning', filesToScan.length);
 
         for (const filePath of filesToScan) {

@@ -4,7 +4,7 @@ import * as utils from './utils.js';
 
 export class KnownMods {
     #value: Record<types.ModName, utils.JSONAbleSet<types.ModPackageId>> = {};
-    constructor(value: Record<string, string[]>) {
+    constructor(value: Record<string, string[]> = {}) {
         for (const [k, v] of Object.entries(value)) {
             const modName = k as types.BaseToOpaque<typeof k, types.ModName>;
             const packageIds = v as types.BaseToOpaque<typeof v, types.ModPackageId[]>;
