@@ -210,7 +210,7 @@ function tryCreateDirLoadFoldersRecord(
 
     if (!utils.isEmptyObj(issues)) return [undefined, issues];
 
-    const packageIdsStr = [...packageIds].join(', ');
+    const packageIdsStr = utils.escapeXMLStr([...packageIds].join(', '));
     const recordDirPath = `${destDirSubpath.replaceAll(path.sep, '/')}/${dirName}`;
     const recordDirPathStr = utils.escapeXMLStr(recordDirPath);
 
