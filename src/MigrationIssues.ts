@@ -1,11 +1,11 @@
-import { ModsetCollection } from './ModsetCollection.js';
+import { ModSetCollection } from './ModSetCollection.js';
 import * as types from './types.js';
 
 // export type MigrationIssuesRaw
 
 export type MigrationIssues = GenericMigrationIssues<DirIssues>;
 
-export type DirIssues = GenericDirIssues<ModsetCollection, types.ModName>;
+export type DirIssues = GenericDirIssues<ModSetCollection, types.ModName>;
 
 export type MigrationIssuesRaw = GenericMigrationIssues<DirIssuesRaw>;
 
@@ -17,7 +17,7 @@ interface GenericDirIssues<ModSetsType, ModNameType> {
     [DirIssueType.NO_PATCHES]?: true;
     [DirIssueType.UNIDENT_MODS_FOUND]?: ModNameType[];
     [DirIssueType.IS_COLLECTION]?: {
-        modsets: ModSetsType;
+        modSets: ModSetsType;
         files: string[];
     }[];
 }

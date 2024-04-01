@@ -5,12 +5,12 @@ import * as commander from 'commander';
 import * as utils from './utils.js';
 import * as patcher from './patcher.js';
 import jsdom from 'jsdom';
-import commonPathPrefix from 'common-path-prefix';
 import * as types from './types.js';
-import { ModsetCollection, Modset } from './ModsetCollection.js';
+import { ModSetCollection, ModSet } from './ModSetCollection.js';
 import { MigrationIssues, DirIssues, DirIssueType } from './MigrationIssues.js';
 import { KnownMods } from './KnownMods.js';
 import * as defaultPaths from './defaultPaths.js';
+import * as ProgressLogger from './ProgressLogger.js';
 
 /*
 	!IMPORTANT!
@@ -21,142 +21,160 @@ interface ProgramOptions {
     skipDirs: string[];
     skipPatching: boolean;
     overwriteFiles: boolean;
+    keepOrigFiles: boolean;
 }
 
 commander.program
     .argument('<string>', 'Source directory path.')
-    .argument(
-        '<string>',
-        'Destination directory path. Must share common path with source directory.',
-    )
+    .argument('<string>', 'Destination directory path.')
+    .argument('<string>', '<loadFolders> record path prefix.')
     .argument('[string]', '"Known mods" file path.', defaultPaths.knownModsFile)
     .option('--skip-dirs <strings...>', 'Directory names to skip.', [])
     .option('--skip-patching', 'Skip patching.', false)
     .option('--overwrite-files', 'Overwrite files.', false)
+    .option('--keep-orig-files', 'Keep original files.', false)
     .action(migrate)
     .parseAsync();
 
 async function migrate(
     srcDirPath: string,
     destDirPath: string,
+    loadFoldersPathPrefix: string,
     knownModsFilePath: string,
-    { skipDirs, skipPatching, overwriteFiles }: ProgramOptions,
+    options: ProgramOptions,
 ) {
-    const absSrcDirPath = path.resolve(srcDirPath);
-    const absDestDirPath = path.resolve(destDirPath);
-    const commonPath = commonPathPrefix([absSrcDirPath, absDestDirPath]);
-    if (
-        absDestDirPath === absSrcDirPath ||
-        absDestDirPath.startsWith(absSrcDirPath) ||
-        !commonPath
-    ) {
-        throw new Error('Invalid destination directory path.');
+    srcDirPath = path.normalize(srcDirPath);
+    destDirPath = path.normalize(destDirPath);
+    if (destDirPath === srcDirPath) {
+        console.log('Source and destination paths cannot be equal. Exiting.');
+
+        return;
     }
-    const destDirSubpath = absDestDirPath.replace(commonPath, '');
-    const absKnownModsFilePath = path.resolve(knownModsFilePath);
-    const knownMods = await KnownMods.fromFile(absKnownModsFilePath);
-    const dirNames = await fs.readdir(absSrcDirPath, 'utf-8');
+    const knownMods = await KnownMods.fromFile(knownModsFilePath);
+    let subDirNames = await utils.fs.getSubDirNames(srcDirPath);
+    if (options.skipDirs.length > 0) {
+        subDirNames = subDirNames.filter((dirName) => !options.skipDirs.includes(dirName));
+    }
     const migrationIssues: MigrationIssues = {};
     const loadFoldersRecords: string[] = [];
-    const logProgress = utils.createProgressLogger('Migrating', dirNames.length - skipDirs.length);
+    const logProgress = ProgressLogger.createProgressLogger('Migrating', subDirNames.length);
 
-    for (const dirName of dirNames) {
-        if (skipDirs.includes(dirName)) continue;
+    for (const subDirName of subDirNames) {
+        logProgress(subDirName);
 
-        logProgress(dirName);
-
-        const absDirPath = path.join(absSrcDirPath, dirName);
-        const [dirFiles, dirModsets] = await loadDirFiles(absDirPath);
-        const [loadFoldersRecord, dirIssues] = tryCreateDirLoadFoldersRecord(
-            destDirSubpath,
-            dirName,
-            dirModsets,
-            dirFiles,
+        const subDirSrcPath = path.join(srcDirPath, subDirName);
+        const dir = await loadDir(subDirSrcPath);
+        const [loadFoldersRecord, issues] = tryCreateDirLoadFoldersRecord(
+            dir,
+            loadFoldersPathPrefix,
             knownMods,
         );
 
         if (loadFoldersRecord) {
             loadFoldersRecords.push(loadFoldersRecord);
 
-            if (!skipPatching) {
-                await migrateDir(absDirPath, dirFiles, absDestDirPath, overwriteFiles);
+            if (!options.skipPatching) {
+                const subDirDestPath = path.join(destDirPath, dir.name, 'Patches', dir.name);
+
+                await migrateDir(dir, subDirDestPath, options);
             }
-        } else if (dirIssues) {
-            migrationIssues[dirName] = dirIssues;
+        } else if (issues) {
+            migrationIssues[subDirName] = issues;
         }
     }
 
     if (loadFoldersRecords.length > 0) {
-        const absFilePath = await writeLoadFoldersRecordsFile(loadFoldersRecords);
+        const filePath = defaultPaths.loadFoldersRecordsFile;
 
-        console.log(`<loadFolders> records file is created at ${absFilePath}`);
+        await fs.writeFile(filePath, loadFoldersRecords.join(os.EOL));
+
+        console.log(`<loadFolders> records file was created at ${filePath}`);
     }
 
-    if (!utils.isEmptyObj(migrationIssues)) {
-        const absFilePath = await writeMigrationIssuesFile(migrationIssues);
-        const migrationIssuesCount = utils.objSize(migrationIssues);
+    const migrationIssuesCount = Object.keys(migrationIssues).length;
+
+    if (migrationIssuesCount > 0) {
+        const filePath = defaultPaths.issuesFile;
+
+        await utils.fs.writeJSON(filePath, migrationIssues);
 
         console.log(
-            `${migrationIssuesCount} directories were not migrated. See ${absFilePath} for details.`,
+            `${migrationIssuesCount} directories were not migrated. See ${filePath} for details.`,
         );
     }
 
     console.log('Done!');
 }
 
-async function loadDirFiles(absDirPath: string) {
-    const dirContent = await fs.readdir(absDirPath, { recursive: true, encoding: 'utf-8' });
-    const dirFileSubpaths = dirContent.filter(utils.hasXMLExt);
-    const dirFiles: LoadedFile[] = [];
-    const dirModsets = new ModsetCollection();
+interface Dir {
+    name: string;
+    path: string;
+    files: File[];
+    modSets: ModSetCollection;
+}
 
-    for (const dirFileSubpath of dirFileSubpaths) {
-        const file = await loadFile(absDirPath, dirFileSubpath);
+async function loadDir(dirPath: string): Promise<Dir> {
+    const fileSubPaths = await utils.fs.getXMLFileSubPaths(dirPath, true);
+    const files: File[] = [];
+    const modSets = new ModSetCollection();
+    const name = path.basename(dirPath);
 
-        dirModsets.mergeWith(file.modsets);
+    for (const fileSubPath of fileSubPaths) {
+        const file = await loadFile(dirPath, fileSubPath);
 
-        dirFiles.push(file);
+        modSets.mergeWith(file.modSets);
+
+        files.push(file);
     }
 
-    return [dirFiles, dirModsets] as const;
-}
-
-interface LoadedFile {
-    readonly subpath: string;
-    readonly dom: jsdom.JSDOM;
-    readonly modsets: ModsetCollection;
-}
-
-async function loadFile(absParentDirPath: string, subpath: string): Promise<LoadedFile> {
-    const absFilePath = path.join(absParentDirPath, subpath);
-    const file = await fs.readFile(absFilePath);
-    const dom = new jsdom.JSDOM(file, { contentType: 'text/xml' });
-    const modsets = extractModsetsFromDoc(dom.window.document);
-
     return {
-        subpath,
-        dom,
-        modsets,
+        name,
+        path: dirPath,
+        files,
+        modSets,
     };
 }
 
-function extractModsetsFromDoc(doc: Document) {
-    const result = new ModsetCollection();
+interface File {
+    readonly subPath: string;
+    readonly dom: jsdom.JSDOM;
+    readonly modSets: ModSetCollection;
+}
 
-    utils.traverseElemTree(doc.documentElement, (elem) => {
-        if (patcher.isUnpackablePatchOpFindMod(elem)) result.add(extractModsetFromPOFM(elem));
+async function loadFile(dirPath: string, subPath: string): Promise<File> {
+    const filePath = path.join(dirPath, subPath);
+    const file = await fs.readFile(filePath, 'utf-8');
+    const dom = new jsdom.JSDOM(file, { contentType: 'text/xml' });
+    const modSets = extractModSetsFromDoc(dom.window.document);
+
+    return {
+        subPath,
+        dom,
+        modSets,
+    };
+}
+
+function extractModSetsFromDoc(doc: Document) {
+    const result = new ModSetCollection();
+
+    utils.dom.traverseElemTree(doc.documentElement, (elem) => {
+        if (patcher.isUnpackablePatchOpFindMod(elem)) {
+            result.add(extractModSetFromPOFM(elem));
+        }
     });
 
     return result;
 }
 
-function extractModsetFromPOFM(elem: Element) {
-    const result = new Modset();
-    const modsElem = utils.getDirectChildByTagName(elem, types.ElemTagName.mods);
+function extractModSetFromPOFM(elem: Element) {
+    const result = new ModSet();
+    const modsElem = utils.dom.getDirectChildByTagName(elem, types.ElemTagName.mods);
 
-    if (!modsElem) return result;
+    if (!modsElem) {
+        return result;
+    }
 
-    const modEntries = utils.getAllDirectChildrenByTagName(modsElem, types.ElemTagName.li);
+    const modEntries = utils.dom.getAllDirectChildrenByTagName(modsElem, types.ElemTagName.li);
 
     for (const modEntry of modEntries) {
         if (modEntry.textContent) {
@@ -170,18 +188,18 @@ function extractModsetFromPOFM(elem: Element) {
 }
 
 function tryCreateDirLoadFoldersRecord(
-    destDirSubpath: string,
-    dirName: string,
-    modsets: ModsetCollection,
-    dirFiles: LoadedFile[],
+    dir: Dir,
+    pathPrefix: string,
     knownMods: KnownMods,
-): [string, undefined] | [undefined, DirIssues] {
-    if (modsets.size === 0) return [undefined, { [DirIssueType.NO_PATCHES]: true }];
+): [lfRecord: string, issues: undefined] | [lfRecord: undefined, issues: DirIssues] {
+    if (dir.modSets.size === 0) {
+        return [undefined, { [DirIssueType.NO_PATCHES]: true }];
+    }
 
     const issues: DirIssues = {};
     const packageIds = new Set<types.ModPackageId>();
     const unidentMods = new Set<types.ModName>();
-    const modNames = modsets.names;
+    const modNames = dir.modSets.names;
 
     for (const modName of modNames) {
         const modPackageIds = knownMods.get(modName);
@@ -189,24 +207,28 @@ function tryCreateDirLoadFoldersRecord(
         if (!modPackageIds) {
             unidentMods.add(modName);
         } else {
-            for (const packageId of modPackageIds) packageIds.add(packageId);
+            for (const packageId of modPackageIds) {
+                packageIds.add(packageId);
+            }
         }
     }
 
-    if (unidentMods.size > 0) issues[DirIssueType.UNIDENT_MODS_FOUND] = [...unidentMods];
+    if (unidentMods.size > 0) {
+        issues[DirIssueType.UNIDENT_MODS_FOUND] = [...unidentMods];
+    }
 
-    if (modsets.size > 1) {
+    if (dir.modSets.size > 1) {
         const details: DirIssues[DirIssueType.IS_COLLECTION] = [];
 
-        for (const file of dirFiles) {
-            const detailsRecord = details.find((rec) => rec.modsets.isEqualTo(file.modsets));
+        for (const file of dir.files) {
+            const detailsRecord = details.find((rec) => rec.modSets.isEqualTo(file.modSets));
 
             if (detailsRecord) {
-                detailsRecord.files.push(file.subpath);
+                detailsRecord.files.push(file.subPath);
             } else {
                 details.push({
-                    modsets: file.modsets,
-                    files: [file.subpath],
+                    modSets: file.modSets,
+                    files: [file.subPath],
                 });
             }
         }
@@ -214,57 +236,46 @@ function tryCreateDirLoadFoldersRecord(
         issues[DirIssueType.IS_COLLECTION] = details;
     }
 
-    if (!utils.isEmptyObj(issues)) return [undefined, issues];
+    if (Object.keys(issues).length > 0) {
+        return [undefined, issues];
+    }
 
-    const packageIdsStr = utils.escapeXMLStr([...packageIds].join(', '));
-    const recordDirPath = `${destDirSubpath.replaceAll(path.sep, '/')}/${dirName}`;
-    const recordDirPathStr = utils.escapeXMLStr(recordDirPath);
+    const packageIdsStr = [...packageIds].join(', ');
+    const dirSubPath = path.join(pathPrefix, dir.name).replaceAll(path.sep, '/');
 
-    return [`<li IfModActive="${packageIdsStr}">${recordDirPathStr}</li>`, undefined];
+    return [
+        `<li IfModActive="${utils.dom.escapeStr(packageIdsStr)}">${
+            utils.dom.escapeStr(dirSubPath) //
+        }</li>`,
+        undefined,
+    ];
 }
 
 async function migrateDir(
-    absSrcDirPath: string,
-    files: LoadedFile[],
-    absDestDirPath: string,
-    overwriteFiles: boolean,
+    dir: Dir,
+    destDirPath: string,
+    options: Pick<ProgramOptions, 'overwriteFiles' | 'keepOrigFiles'>,
 ) {
-    for (const file of files) {
-        patcher.patchDOC(file.dom.window.document);
-
-        const srcDirName = path.basename(absSrcDirPath);
-        const patchedFileStr = utils.strToXMLFileStr(file.dom.serialize());
-        const absFilePath = path.join(
-            absDestDirPath,
-            srcDirName,
-            'Patches',
-            srcDirName,
-            file.subpath,
-        );
-
-        await utils.writeFileRecursive(absFilePath, patchedFileStr, {
-            encoding: 'utf-8',
-            flag: overwriteFiles ? 'w' : 'wx',
-        });
+    for (const file of dir.files) {
+        await migrateFile(file, destDirPath, options);
     }
 
-    await fs.rm(absSrcDirPath, { recursive: true });
+    if (!options.keepOrigFiles) {
+        await fs.rm(dir.path, { recursive: true });
+    }
 }
 
-async function writeLoadFoldersRecordsFile(data: string[]) {
-    const absFilePath = defaultPaths.loadFoldersRecordsFile;
+async function migrateFile(
+    file: File,
+    destDirPath: string,
+    options: Pick<ProgramOptions, 'overwriteFiles'>,
+) {
+    patcher.patchDOC(file.dom.window.document);
 
-    await fs.writeFile(absFilePath, data.join(os.EOL), 'utf-8');
+    const filePath = path.join(destDirPath, file.subPath);
+    const patchedFile = utils.xml.toXMLFile(file.dom.serialize());
 
-    return absFilePath;
-}
-
-async function writeMigrationIssuesFile(data: MigrationIssues) {
-    const absFilePath = defaultPaths.issuesFile;
-    const json = JSON.stringify(data);
-    const file = utils.fixEOL(json);
-
-    await fs.writeFile(absFilePath, file, 'utf-8');
-
-    return absFilePath;
+    await utils.fs.writeFileRecursive(filePath, patchedFile, {
+        flag: options.overwriteFiles ? 'w' : 'wx',
+    });
 }

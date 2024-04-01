@@ -8,19 +8,22 @@ import * as patcher from '../patcher.js';
 import * as utils from '../utils.js';
 import * as commander from 'commander';
 import * as types from '../types.js';
+import * as ProgressLogger from '../ProgressLogger.js';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
 commander.program
     .argument('[string]', 'Original files directory path.')
     .argument('[string]', 'Reference files directory path.')
-    .action(async (origDirPath?: string, refDirPath?: string) => {
-        if (origDirPath && refDirPath) {
-            await compareDirs(origDirPath, refDirPath);
+    .action(async (origFilesDirPath?: string, refFilesDirPath?: string) => {
+        if (origFilesDirPath && refFilesDirPath) {
+            await compareDirs(origFilesDirPath, refFilesDirPath);
         } else {
-            const absTestFilePaths = await fs.readdir(relPath('tests'));
+            const testFilePaths = await utils.fs.getXMLFileSubPaths(relPath('tests'));
 
-            await Promise.all(absTestFilePaths.map(testFile));
+            for (const testFilePath of testFilePaths) {
+                await testFile(testFilePath);
+            }
         }
 
         console.log('Done!');
@@ -32,79 +35,88 @@ commander.program
  *
  * If it is not, then this probably means that the previous version of patcher was bugged in some way and we need to repatch our files using the new version of the patcher.
  */
-async function compareDirs(origDirPath: string, refDirPath: string) {
-    const absOrigDirPath = path.resolve(origDirPath);
-    const absRefDirPath = path.resolve(refDirPath);
-    const refDirContent = await fs.readdir(absRefDirPath, {
-        recursive: true,
-        encoding: 'utf-8',
-    });
-    const refFileSubpaths = refDirContent.filter(utils.hasXMLExt);
-    const logProgress = utils.createProgressLogger('Comparing', refFileSubpaths.length);
+async function compareDirs(origFilesDirPath: string, refFilesDirPath: string) {
+    const refDirFilePaths = await utils.fs.getXMLFileSubPaths(refFilesDirPath, true);
+    const logProgress = ProgressLogger.createProgressLogger('Comparing', refDirFilePaths.length);
 
-    for (const refFileSubpath of refFileSubpaths) {
-        const absRefFilePath = path.join(absRefDirPath, refFileSubpath);
-        const [, , ...origFileSubpath] = refFileSubpath.split(path.sep);
-        const absOrigFilePath = path.join(absOrigDirPath, ...origFileSubpath);
-        logProgress(`...${path.sep}${origFileSubpath.join(path.sep)}`);
+    for (const refDirFilePath of refDirFilePaths) {
+        const [, , ...origFileSubPath] = refDirFilePath.split(path.sep);
+
+        logProgress(`...${path.sep}${origFileSubPath.join(path.sep)}`);
+
+        const refFilePath = path.join(refFilesDirPath, refDirFilePath);
+        const origFilePath = path.join(origFilesDirPath, ...origFileSubPath);
         const [refFile, origFile] = await Promise.all([
-            fs.readFile(absRefFilePath, 'utf-8'),
-            fs.readFile(absOrigFilePath, 'utf-8'),
+            fs.readFile(refFilePath, 'utf-8'),
+            fs.readFile(origFilePath, 'utf-8'),
         ]);
 
-        assert.equal(patcher.patchRawXML(origFile), refFile);
+        // We do not normalize EOL of ref file because doing so could produce false positive results
+        assert.equal(utils.xml.toXMLFile(patcher.patchXML(origFile)), refFile);
     }
 }
 
-async function testFile(fileName: string) {
-    const { input, out, desc } = await parseTestFile(fileName);
-    const testName = `(${fileName.replace('.xml', '')}) ${desc}`;
+async function testFile(filePath: string) {
+    const { input, out, desc } = await parseTestFile(filePath);
+    const testName = `(${path.basename(filePath, '.xml')}) ${desc}`;
 
-    test(testName, () => assert.equal(patcher.patchRawXML(input), utils.strToXMLFileStr(out)));
+    test(testName, () => {
+        assert.equal(patcher.patchXML(input), out);
+    });
 }
 
-async function parseTestFile(fileName: string) {
-    const dom = await jsdom.JSDOM.fromFile(relPath(`tests/${fileName}`), {
+async function parseTestFile(filePath: string) {
+    const dom = await jsdom.JSDOM.fromFile(relPath(`tests/${filePath}`), {
         contentType: 'text/xml',
     });
     const root = dom.window.document.documentElement;
     const desc = root.getAttribute('description');
-    let [input, out] = utils.getAllDirectChildrenByTagName(root, types.ElemTagName.Patch);
+    let [input, out] = utils.dom.getAllDirectChildrenByTagName(root, types.ElemTagName.Patch);
 
-    if (!out && root.getAttribute('outputIsEqualToInput')) out = input;
+    if (!out && root.getAttribute('outputIsEqualToInput')) {
+        out = input;
+    }
 
-    if (!input || !out || !desc) throw new Error(`Invalid test file: ${fileName}`);
+    if (!input || !out || !desc) {
+        throw new Error(`Invalid test file: ${filePath}`);
+    }
 
-    return { input: fixTestIndent(input.outerHTML), out: fixTestIndent(out.outerHTML), desc };
+    return {
+        input: fixTestIndent(input.outerHTML),
+        out: fixTestIndent(out.outerHTML),
+        desc,
+    };
 }
 
 function fixTestIndent(str: string) {
-    return utils.mapStrLines(str, (line) => line.replace('\t', ''));
+    return utils.string.mapLines(str, (line) => line.replace('\t', ''));
 }
 
 function test(name: string, cb: () => void) {
     try {
         cb();
         console.log(`${chalk.green('[PASS]')}: ${name}`);
-    } catch (e) {
+    } catch (error) {
         console.log(`${chalk.red('[FAIL]')}: ${name}`);
 
-        if (e instanceof assert.AssertionError) {
-            console.log(
-                [
-                    `\n${e.message}\n`,
-                    `${chalk.green('Actual')}:`,
-                    `${e.actual}\n`,
-                    `${chalk.red('Expected')}:`,
-                    `${e.expected}\n`,
-                ].join('\n'),
-            );
+        if (error instanceof assert.AssertionError) {
+            console.log(printAssertionError(error));
         } else {
-            console.dir(e);
+            console.dir(error);
         }
     }
 }
 
 function relPath(p: string) {
     return path.join(__dirname.replace('.tsc', 'src'), p);
+}
+
+function printAssertionError(error: import('node:assert').AssertionError) {
+    return [
+        `\n${error.message}\n`,
+        `${chalk.green('Actual')}:`,
+        `${error.actual}\n`,
+        `${chalk.red('Expected')}:`,
+        `${error.expected}\n`,
+    ].join('\n');
 }

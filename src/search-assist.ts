@@ -12,6 +12,7 @@ import { MigrationIssuesRaw, DirIssueType } from './MigrationIssues.js';
 import { KnownMods } from './KnownMods.js';
 import * as defaultPaths from './defaultPaths.js';
 import os from 'node:os';
+import { extractModMetadata, ModMeta } from './extractModMetadata.js';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
@@ -23,8 +24,6 @@ interface ModAddedEvent {
     name: types.ModName;
     packageId: types.ModPackageId;
 }
-
-type ModMeta = ReturnType<typeof utils.extractModMetadata>;
 
 interface ProgramOptions {
     p: string;
@@ -46,34 +45,30 @@ commander.program
             knownModsFilePath: string,
             { p }: ProgramOptions,
         ) => {
-            const absSteamWsDirPath = path.resolve(steamWsDirPath);
-            const absIssuesFilePath = path.resolve(issuesFilePath);
-            const absKnownModsFilePath = path.resolve(knownModsFilePath);
             const port = Number(p);
-            const issuesFile = await fs.readFile(absIssuesFilePath, 'utf-8');
+            const issuesFile = await fs.readFile(issuesFilePath, 'utf-8');
             const issues: MigrationIssuesRaw = JSON.parse(issuesFile);
             let knownMods: KnownMods;
             try {
-                knownMods = await KnownMods.fromFile(absKnownModsFilePath);
-                console.log(`Using "known mods" collection from ${absKnownModsFilePath}`);
+                knownMods = await KnownMods.fromFile(knownModsFilePath);
+                console.log(`Using "known mods" collection from ${knownModsFilePath}`);
             } catch {
                 knownMods = new KnownMods();
                 console.log('Using empty "known mods" collection.');
             }
-            const unidentMods = extractAllUnidentModsFromMigrationIssues(issues, knownMods);
+            const unidentMods = getAllUnidentMods(issues, knownMods);
             if (unidentMods.size === 0) {
                 console.log('No unidentified mods found. Exiting.');
 
                 return;
             }
-            const absPageTemplateFilePath = path.join(
-                __dirname,
-                '../src/search-assist/template.html',
-            );
-            const pageTemplate = await fs.readFile(absPageTemplateFilePath, 'utf-8');
+            const pageTemplateFilePath = path.join(__dirname, '../src/search-assist/template.html');
+            const pageTemplate = await fs.readFile(pageTemplateFilePath, 'utf-8');
             const app = express();
 
-            app.get('/', (_, res) => res.send(genPage(pageTemplate, unidentMods)));
+            app.get('/', (_, res) => {
+                res.send(genPage(pageTemplate, unidentMods));
+            });
 
             app.get('/stream', (_, res) => {
                 res.setHeader('Cache-Control', 'no-cache');
@@ -109,7 +104,7 @@ commander.program
                 res.json(knownMods);
             });
 
-            await watchDir(absSteamWsDirPath);
+            await watchDir(steamWsDirPath);
 
             app.listen(port, () => {
                 console.log(`Web GUI is available at http://localhost:${port}`);
@@ -122,15 +117,15 @@ function genPage(template: string, unidentMods: Set<string>) {
     let rows = '';
 
     for (const modName of unidentMods) {
-        rows += `<li data-mod-name="${utils.escapeXMLStr(modName)}"><a href="steam://openurl/https://steamcommunity.com/workshop/browse/?appid=294100&searchtext=${encodeURIComponent(modName)}&browsesort=textsearch&section=readytouseitems">${utils.escapeXMLStr(modName)}</a></li>`;
+        rows += `<li data-mod-name="${utils.dom.escapeStr(modName)}"><a href="steam://openurl/https://steamcommunity.com/workshop/browse/?appid=294100&searchtext=${encodeURIComponent(modName)}&browsesort=textsearch&section=readytouseitems">${utils.dom.escapeStr(modName)}</a></li>`;
     }
 
     return template.replace('CONTENT_ANCHOR', rows);
 }
 
-async function watchDir(absDirPath: string) {
+async function watchDir(dirPath: string) {
     return new Promise<void>((resolve) => {
-        const watcher = chokidar.watch(absDirPath, {
+        const watcher = chokidar.watch(dirPath, {
             awaitWriteFinish: true,
             ignoreInitial: true,
             useFsEvents: true,
@@ -138,7 +133,7 @@ async function watchDir(absDirPath: string) {
         });
 
         watcher.on('ready', () => {
-            console.log(`Watching for file changes in ${absDirPath}`);
+            console.log(`Watching for file changes in ${dirPath}`);
             resolve();
         });
 
@@ -149,7 +144,7 @@ async function watchDir(absDirPath: string) {
 async function handleFileCreatedEvent(filePath: string) {
     if (filePath.toLowerCase().endsWith(path.join('about', 'about.xml'))) {
         const file = await fs.readFile(filePath, 'utf-8');
-        const { name, packageId } = utils.extractModMetadata(file);
+        const { name, packageId } = extractModMetadata(file);
 
         if (!name || !packageId) {
             logModMetaScanResult(MsgType.ERROR, { name, packageId });
@@ -159,16 +154,13 @@ async function handleFileCreatedEvent(filePath: string) {
     }
 }
 
-function extractAllUnidentModsFromMigrationIssues(
-    issues: MigrationIssuesRaw,
-    knownMods: KnownMods,
-) {
+function getAllUnidentMods(issues: MigrationIssuesRaw, knownMods: KnownMods) {
     const result = new Set<string>();
 
-    for (const dirIssue of Object.values(issues)) {
-        const dirUnidentMods = dirIssue[DirIssueType.UNIDENT_MODS_FOUND] || [];
+    for (const issue of Object.values(issues)) {
+        const unidentMods = issue[DirIssueType.UNIDENT_MODS_FOUND] || [];
 
-        for (const modName of dirUnidentMods) {
+        for (const modName of unidentMods) {
             if (!knownMods.get(modName as types.BaseToOpaque<typeof modName, types.ModName>)) {
                 result.add(modName);
             }

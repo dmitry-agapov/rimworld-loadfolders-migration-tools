@@ -25,7 +25,9 @@
             for (const reader = response.body.getReader(); ;) {
                 const { value, done } = await reader.read();
 
-                if (done) break;
+                if (done) {
+					break;
+				}
 
                 const chunk = new TextDecoder().decode(value);
                 const subChunks = chunk.split(/(?<=})\n\ndata: (?={)/);
@@ -34,7 +36,9 @@
                     const payload = subChunk.replace(/^data: /, "");
 					const elem = document.querySelector(`[data-mod-name="${payload.trim()}"]`);
 
-					if (elem) elem.remove();
+					if (elem) {
+						elem.remove();
+					}
                 }
             }
         })();

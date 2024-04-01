@@ -42,11 +42,6 @@ export type ModName = Opaque<string, 'ModName'>;
 
 export type ModPackageId = Opaque<string, 'ModPackageId'>;
 
-export const enum PatchOpType {
-    FindMod = 'PatchOperationFindMod',
-    Sequence = 'PatchOperationSequence',
-}
-
 export const enum ElemTagName {
     Patch = 'Patch',
     Operation = 'Operation',

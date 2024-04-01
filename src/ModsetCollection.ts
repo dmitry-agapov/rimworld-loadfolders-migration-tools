@@ -1,34 +1,36 @@
 import * as utils from './utils.js';
 import * as types from './types.js';
 
-export const Modset = utils.JSONAbleSet<types.ModName>;
-export type Modset = utils.JSONAbleSet<types.ModName>;
+export const ModSet = utils.set.JSONAbleSet<types.ModName>;
+export type ModSet = utils.set.JSONAbleSet<types.ModName>;
 
-export class ModsetCollection {
-    #sets: Modset[] = [];
-    add(value: Modset) {
-        if (!this.#sets.find((item) => utils.isEqSets(item, value))) this.#sets.push(value);
+export class ModSetCollection {
+    #sets: ModSet[] = [];
+    add(value: ModSet) {
+        if (!this.#sets.find((item) => utils.set.isEqSets(item, value))) {
+            this.#sets.push(value);
+        }
     }
-    forEach(cb: (v: Modset) => void) {
+    forEach(cb: (v: ModSet) => void) {
         this.#sets.forEach(cb);
     }
-    mergeWith(set: ModsetCollection) {
+    mergeWith(set: ModSetCollection) {
         set.forEach((item) => this.add(item));
     }
     toArrayDeep() {
         return this.#sets.map((item) => [...item]);
     }
-    isEqualTo(set: ModsetCollection) {
+    isEqualTo(set: ModSetCollection) {
         return this.size === set.size && this.#sets.every((item) => set.has(item));
     }
     has(value: Set<string>) {
-        return !!this.#sets.find((item) => utils.isEqSets(item, value));
+        return !!this.#sets.find((item) => utils.set.isEqSets(item, value));
     }
     get size() {
         return this.#sets.length;
     }
     get names(): types.ModName[] {
-        return utils.dedupeArray(this.toArrayDeep().flat());
+        return [...new Set(this.toArrayDeep().flat())];
     }
     toJSON() {
         return this.#sets;
