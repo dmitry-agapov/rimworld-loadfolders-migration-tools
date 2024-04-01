@@ -61,7 +61,7 @@ function unpackPatchOpFindMod(elem: Element) {
     } else {
         subtractIndent(matchElem, 1);
 
-        elem.replaceWith(convertElemTo(matchElem, elem));
+        elem.replaceWith(changeElemTagName(matchElem, elem.tagName));
     }
 }
 
@@ -86,7 +86,7 @@ function unpackPatchOpSeq(elem: Element, target: Element = elem) {
     }
 
     for (const op of opsElem.children) {
-        op.replaceWith(convertElemTo(op, target));
+        op.replaceWith(changeElemTagName(op, target.tagName));
     }
 
     trimElemContent(opsElem);
@@ -96,20 +96,20 @@ function unpackPatchOpSeq(elem: Element, target: Element = elem) {
     target.replaceWith(...opsElem.childNodes);
 }
 
-function convertElemTo(src: Element, target: Element) {
-    if (src.tagName === target.tagName) {
-        return src;
+function changeElemTagName(elem: Element, tagName: string) {
+    if (elem.tagName === tagName) {
+        return elem;
     }
 
-    const newElem = src.ownerDocument.createElement(target.tagName);
-    const srcElemClassAttrVal = src.getAttribute('Class');
+    const newElem = elem.ownerDocument.createElement(tagName);
+    const srcElemClassAttrVal = elem.getAttribute('Class');
 
     if (srcElemClassAttrVal) {
         newElem.setAttribute('Class', srcElemClassAttrVal);
     }
 
     // Copying nodes, to preserve comments and original formatting
-    newElem.replaceChildren(...src.childNodes);
+    newElem.replaceChildren(...elem.childNodes);
 
     return newElem;
 }
