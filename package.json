@@ -11,7 +11,8 @@
         "patcher:test": "node --enable-source-maps ./.tsc/patcher/test.js",
         "scan-mods": "node --enable-source-maps ./.tsc/scan-mods.js",
         "migrate": "node --enable-source-maps ./.tsc/migrate.js",
-        "search-assist": "node --enable-source-maps ./.tsc/search-assist.js"
+        "search-assist": "node --enable-source-maps ./.tsc/search-assist.js",
+        "extract-defs": "node --enable-source-maps ./.tsc/extract-defs.js"
     },
     "dependencies": {
         "@types/express": "^4.17.21",
