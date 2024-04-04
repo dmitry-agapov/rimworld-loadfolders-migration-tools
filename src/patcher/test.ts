@@ -8,6 +8,8 @@ import * as patcher from '../patcher.js';
 import * as utils from '../utils.js';
 import * as commander from 'commander';
 import * as ProgressLogger from '../ProgressLogger.js';
+import * as diffJs from 'diff';
+import process from 'node:process';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
@@ -37,29 +39,46 @@ commander.program
 async function compareDirs(origFilesDirPath: string, refFilesDirPath: string) {
     const refDirFilePaths = await utils.fs.getXMLFileSubPaths(refFilesDirPath, true);
     const logProgress = ProgressLogger.createProgressLogger('Comparing', refDirFilePaths.length);
+    const fails: string[] = [];
 
     for (const refDirFilePath of refDirFilePaths) {
-        const [, , ...origFileSubPath] = refDirFilePath.split(path.sep);
+        const [, , ...origFileSubPathParts] = refDirFilePath.split(path.sep);
+        const origFileSubPath = origFileSubPathParts.join(path.sep);
 
-        logProgress(`...${path.sep}${origFileSubPath.join(path.sep)}`);
+        logProgress(`...${path.sep}${origFileSubPath}`);
 
         const refFilePath = path.join(refFilesDirPath, refDirFilePath);
-        const origFilePath = path.join(origFilesDirPath, ...origFileSubPath);
-        const [refFile, origFile] = await Promise.all([
+        const origFilePath = path.join(origFilesDirPath, origFileSubPath);
+        let [refFile, origFile] = await Promise.all([
             fs.readFile(refFilePath, 'utf-8'),
             fs.readFile(origFilePath, 'utf-8'),
         ]);
+        const patchedOrigFile = utils.xml.toXMLFile(patcher.patchXML(origFile));
 
-        // We do not normalize EOL of ref file because doing so could produce false positive results
-        assert.equal(utils.xml.toXMLFile(patcher.patchXML(origFile)), refFile);
+        try {
+            // We do not normalize EOL of ref file because doing so could produce false positive results
+            assert.equal(patchedOrigFile, refFile);
+        } catch (error) {
+            logTestFail(origFileSubPath, error);
+
+            fails.push(origFileSubPath);
+
+            process.stdout.write('Press ENTER to continue...');
+
+            await new Promise((resolve) => process.stdin.once('data', resolve));
+        }
+    }
+
+    if (fails.length > 0) {
+        console.log([`${fails.length} files don't match:`, ...fails].join('\n\t'));
     }
 }
 
 async function testFile(filePath: string) {
     const { input, out, desc } = await parseTestFile(filePath);
-    const testName = `(${path.basename(filePath, '.xml')}) ${desc}`;
+    const testDescription = `(${path.basename(filePath, '.xml')}) ${desc}`;
 
-    test(testName, () => {
+    test(testDescription, () => {
         assert.equal(patcher.patchXML(input), out);
     });
 }
@@ -91,31 +110,71 @@ function fixTestIndent(str: string) {
     return utils.string.mapLines(str, (line) => line.replace('\t', ''));
 }
 
-function test(name: string, cb: () => void) {
+function test(description: string, cb: () => void) {
     try {
         cb();
-        console.log(`${chalk.green('[PASS]')}: ${name}`);
-    } catch (error) {
-        console.log(`${chalk.red('[FAIL]')}: ${name}`);
 
-        if (error instanceof assert.AssertionError) {
-            console.log(printAssertionError(error));
-        } else {
-            console.dir(error);
-        }
+        logTestPass(description);
+    } catch (error) {
+        logTestFail(description, error);
     }
+}
+
+function logTestPass(description: string) {
+    console.log(chalk.green('[PASS]') + ': ' + description);
+}
+
+function logTestFail(description: string, error: unknown) {
+    console.log(chalk.red('[FAIL]') + ': ' + description);
+
+    logError(error);
 }
 
 function relPath(p: string) {
     return path.join(__dirname.replace('.tsc', 'src'), p);
 }
 
+function logError(error: unknown) {
+    if (error instanceof assert.AssertionError) {
+        console.log(printAssertionError(error).replaceAll('\t', '    '));
+    } else {
+        console.dir(error);
+    }
+}
+
 function printAssertionError(error: import('node:assert').AssertionError) {
-    return [
-        `\n${error.message}\n`,
-        `${chalk.green('Actual')}:`,
-        `${error.actual}\n`,
-        `${chalk.red('Expected')}:`,
-        `${error.expected}\n`,
-    ].join('\n');
+    if (typeof error.expected === 'string' && typeof error.actual === 'string') {
+        const diff = diffJs.diffLines(error.expected, error.actual);
+
+        return printLinesDiff(diff);
+    }
+
+    return error.message;
+}
+
+function printLinesDiff(diff: diffJs.Change[]) {
+    return diff.map(printLinesDiffChange).join('');
+}
+
+function printLinesDiffChange(change: diffJs.Change) {
+    if (change.added) {
+        return chalk.bgGreen(change.value);
+    } else if (change.removed) {
+        return chalk.bgRed(change.value);
+    } else if (change.count && change.count > 11) {
+        const lines = change.value.split('\n');
+        const head = lines.slice(0, 5);
+        const tail = lines.slice(lines.length - 6);
+
+        return [
+            ...head,
+            utils.string.padBoth(
+                chalk.bgCyan(`... ${lines.length - 10} lines were skipped ...`),
+                process.stdout.columns,
+            ),
+            ...tail,
+        ].join('\n');
+    }
+
+    return change.value;
 }
