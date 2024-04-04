@@ -19,8 +19,8 @@ export function logProgress(taskName: string, curr: number, total: number, addon
     }
     const output = parts
         .join(' | ')
-        .slice(0, process.stdout.columns)
-        .padEnd(process.stdout.columns);
+        .slice(0, process.stdout.columns + 1)
+        .padEnd(process.stdout.columns + 1);
 
     process.stdout.write(output);
 
