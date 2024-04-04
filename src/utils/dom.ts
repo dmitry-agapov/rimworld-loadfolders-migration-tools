@@ -112,14 +112,17 @@ export function changeElemTagName(elem: Element, tagName: string) {
     }
 
     const newElem = elem.ownerDocument.createElement(tagName);
-    const srcElemClassAttrVal = elem.getAttribute('Class');
 
-    if (srcElemClassAttrVal) {
-        newElem.setAttribute('Class', srcElemClassAttrVal);
-    }
+    cloneElemAttributes(elem, newElem);
 
     // Copying nodes, to preserve comments and original formatting
     newElem.replaceChildren(...elem.childNodes);
 
     return newElem;
+}
+
+export function cloneElemAttributes(source: Element, target: Element) {
+    for (const attribute of source.attributes) {
+        target.setAttribute(attribute.name, attribute.value);
+    }
 }
