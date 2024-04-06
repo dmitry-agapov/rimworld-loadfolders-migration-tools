@@ -66,7 +66,7 @@ function isUnpackablePatchOpSeq(elem: Element, target: Element = elem) {
     if (isChildPatchOpsConversionRequired && canConvertChildPatchOps) {
         const opsElem = utils.dom.getChildByTagName(elem, utils.patch.ElemTagName.operations);
 
-        if (opsElem && utils.dom.someChildHasAttr(opsElem, 'MayRequire')) {
+        if (opsElem && utils.dom.someChildHasAnyAttr(opsElem, 'MayRequire', 'MayRequireAnyOf')) {
             canConvertChildPatchOps = false;
         }
     }

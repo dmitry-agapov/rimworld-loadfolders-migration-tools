@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Test description="Handles 'MayRequire' attribute.">
+<Test description="Handles 'MayRequire' and 'MayRequireAnyOf' attributes.">
 
 	<Patch>
 
@@ -48,7 +48,7 @@
 				<li Class="PatchOperationSequence">
 					<operations>
 
-						<li Class="PatchOp_2" MayRequire="foo.bar">
+						<li Class="PatchOp_2" MayRequireAnyOf="foo.bar">
 							foobar
 						</li>
 
@@ -93,7 +93,7 @@
 					foobar
 				</li>
 
-				<li Class="PatchOp_2" MayRequire="foo.bar">
+				<li Class="PatchOp_2" MayRequireAnyOf="foo.bar">
 					foobar
 				</li>
 

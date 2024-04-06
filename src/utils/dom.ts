@@ -127,10 +127,12 @@ export function cloneElemAttributes(source: Element, target: Element) {
     }
 }
 
-export function someChildHasAttr(elem: Element, attrName: string) {
+export function someChildHasAnyAttr(elem: Element, ...attrNames: string[]) {
     for (const child of elem.children) {
-        if (child.attributes.getNamedItem(attrName) !== null) {
-            return true;
+        for (const attrName of attrNames) {
+            if (child.attributes.getNamedItem(attrName) !== null) {
+                return true;
+            }
         }
     }
 
