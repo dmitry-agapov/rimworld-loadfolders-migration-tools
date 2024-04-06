@@ -60,10 +60,18 @@ function unpackPatchOpFindMod(elem: Element) {
 }
 
 function isUnpackablePatchOpSeq(elem: Element, target: Element = elem) {
-    return (
-        utils.patch.isPatchOpOfType(elem, utils.patch.PatchOpType.Sequence) &&
-        (isTopPatchOp(target) || target.tagName === utils.patch.ElemTagName.li)
-    );
+    const isPatchOpSeq = utils.patch.isPatchOpOfType(elem, utils.patch.PatchOpType.Sequence);
+    const isChildPatchOpsConversionRequired = target.tagName !== utils.patch.ElemTagName.li;
+    let canConvertChildPatchOps = isTopPatchOp(target);
+    if (isChildPatchOpsConversionRequired && canConvertChildPatchOps) {
+        const opsElem = utils.dom.getDirectChildByTagName(elem, utils.patch.ElemTagName.operations);
+
+        if (opsElem && utils.dom.someChildHasAttr(opsElem, 'MayRequire')) {
+            canConvertChildPatchOps = false;
+        }
+    }
+
+    return isPatchOpSeq && (canConvertChildPatchOps || isChildPatchOpsConversionRequired === false);
 }
 
 function isTopPatchOp({ tagName, parentElement, ownerDocument }: Element) {

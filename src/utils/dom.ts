@@ -126,3 +126,13 @@ export function cloneElemAttributes(source: Element, target: Element) {
         target.setAttribute(attribute.name, attribute.value);
     }
 }
+
+export function someChildHasAttr(elem: Element, attrName: string) {
+    for (const child of elem.children) {
+        if (child.attributes.getNamedItem(attrName) !== null) {
+            return true;
+        }
+    }
+
+    return false;
+}
