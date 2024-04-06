@@ -26,7 +26,7 @@ export function patchDOC(doc: Document) {
 export function isUnpackablePatchOpFindMod(elem: Element) {
     return (
         utils.patch.isPatchOpOfType(elem, utils.patch.PatchOpType.FindMod) &&
-        !utils.dom.getDirectChildByTagName(elem, utils.patch.ElemTagName.nomatch) &&
+        !utils.dom.getChildByTagName(elem, utils.patch.ElemTagName.nomatch) &&
         !isDescendantOfPatchOpFindMod(elem)
     );
 }
@@ -44,7 +44,7 @@ function isDescendantOfPatchOpFindMod({ parentElement }: Element) {
 }
 
 function unpackPatchOpFindMod(elem: Element) {
-    const matchElem = utils.dom.getDirectChildByTagName(elem, utils.patch.ElemTagName.match);
+    const matchElem = utils.dom.getChildByTagName(elem, utils.patch.ElemTagName.match);
 
     if (!matchElem) {
         return;
@@ -64,7 +64,7 @@ function isUnpackablePatchOpSeq(elem: Element, target: Element = elem) {
     const isChildPatchOpsConversionRequired = target.tagName !== utils.patch.ElemTagName.li;
     let canConvertChildPatchOps = isTopPatchOp(target);
     if (isChildPatchOpsConversionRequired && canConvertChildPatchOps) {
-        const opsElem = utils.dom.getDirectChildByTagName(elem, utils.patch.ElemTagName.operations);
+        const opsElem = utils.dom.getChildByTagName(elem, utils.patch.ElemTagName.operations);
 
         if (opsElem && utils.dom.someChildHasAttr(opsElem, 'MayRequire')) {
             canConvertChildPatchOps = false;
@@ -82,7 +82,7 @@ function isTopPatchOp({ tagName, parentElement, ownerDocument }: Element) {
 }
 
 function unpackPatchOpSeq(elem: Element, target: Element = elem) {
-    const opsElem = utils.dom.getDirectChildByTagName(elem, utils.patch.ElemTagName.operations);
+    const opsElem = utils.dom.getChildByTagName(elem, utils.patch.ElemTagName.operations);
 
     if (!opsElem) {
         return;

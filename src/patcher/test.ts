@@ -89,7 +89,7 @@ async function parseTestFile(filePath: string) {
     });
     const root = dom.window.document.documentElement;
     const desc = root.getAttribute('description');
-    let [input, out] = utils.dom.getAllDirectChildrenByTagName(root, utils.patch.ElemTagName.Patch);
+    let [input, out] = utils.dom.getChildrenByTagName(root, utils.patch.ElemTagName.Patch);
 
     if (!out && root.getAttribute('outputIsEqualToInput')) {
         out = input;

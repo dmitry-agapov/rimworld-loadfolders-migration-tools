@@ -11,10 +11,10 @@ export function extractModMetadata(xml: string): ModMeta {
     const dom = new jsdom.JSDOM(xml, { contentType: 'text/xml' });
     const root = dom.window.document.documentElement;
     const name = utils.dom
-        .getDirectChildByTagName(root, utils.patch.ElemTagName.name)
+        .getChildByTagName(root, utils.patch.ElemTagName.name)
         ?.textContent?.trim();
     const packageId = utils.dom
-        .getDirectChildByTagName(root, utils.patch.ElemTagName.packageId)
+        .getChildByTagName(root, utils.patch.ElemTagName.packageId)
         ?.textContent?.trim();
 
     return {

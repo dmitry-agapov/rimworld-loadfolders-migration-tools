@@ -20,7 +20,7 @@ commander.program
             const file = await fs.readFile(fileSrcPath, 'utf-8');
             const dom = new jsdom.JSDOM(file, { contentType: 'text/xml' });
             const root = dom.window.document.documentElement;
-            const patchOps = utils.dom.getAllDirectChildrenByTagName(
+            const patchOps = utils.dom.getChildrenByTagName(
                 root,
                 utils.patch.ElemTagName.Operation,
             );
@@ -70,7 +70,7 @@ commander.program
     .parseAsync();
 
 function isPatchOpAddDef(elem: Element) {
-    const xpathElem = utils.dom.getDirectChildByTagName(elem, utils.patch.ElemTagName.xpath);
+    const xpathElem = utils.dom.getChildByTagName(elem, utils.patch.ElemTagName.xpath);
 
     return (
         utils.patch.isPatchOpOfType(elem, utils.patch.PatchOpType.Add) &&
@@ -88,10 +88,7 @@ async function extractDefsToFile(filePath: string, dom: jsdom.JSDOM) {
 
 function toDefsDoc(doc: Document) {
     const root = doc.documentElement;
-    const patchOps = utils.dom.getAllDirectChildrenByTagName(
-        root,
-        utils.patch.ElemTagName.Operation,
-    );
+    const patchOps = utils.dom.getChildrenByTagName(root, utils.patch.ElemTagName.Operation);
 
     for (const patchOp of patchOps) {
         unpackPatchOpAdd(patchOp);
@@ -101,7 +98,7 @@ function toDefsDoc(doc: Document) {
 }
 
 function unpackPatchOpAdd(elem: Element) {
-    const valueElem = utils.dom.getDirectChildByTagName(elem, utils.patch.ElemTagName.value);
+    const valueElem = utils.dom.getChildByTagName(elem, utils.patch.ElemTagName.value);
 
     if (!valueElem) {
         return;

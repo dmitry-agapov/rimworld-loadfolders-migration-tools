@@ -168,16 +168,13 @@ function extractModSetsFromDoc(doc: Document) {
 
 function extractModSetFromPOFM(elem: Element) {
     const result = new ModSet();
-    const modsElem = utils.dom.getDirectChildByTagName(elem, utils.patch.ElemTagName.mods);
+    const modsElem = utils.dom.getChildByTagName(elem, utils.patch.ElemTagName.mods);
 
     if (!modsElem) {
         return result;
     }
 
-    const modEntries = utils.dom.getAllDirectChildrenByTagName(
-        modsElem,
-        utils.patch.ElemTagName.li,
-    );
+    const modEntries = utils.dom.getChildrenByTagName(modsElem, utils.patch.ElemTagName.li);
 
     for (const modEntry of modEntries) {
         if (modEntry.textContent) {
