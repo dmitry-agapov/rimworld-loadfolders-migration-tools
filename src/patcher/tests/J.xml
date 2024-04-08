@@ -26,6 +26,24 @@
 			</baz>
 		</Operation>
 
+		<Operation Class="PatchOperationSequence">
+			<operations>
+
+				<li Class="PatchOp">
+					foobar
+				</li>
+
+				<li Class="PatchOp">
+					foobar
+				</li>
+
+				<li Class="PatchOperationTest">
+					foobar
+				</li>
+
+			</operations>
+		</Operation>
+
 	</Patch>
 
 </Test>
