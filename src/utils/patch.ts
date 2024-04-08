@@ -2,6 +2,7 @@ export const enum PatchOpType {
     FindMod = 'PatchOperationFindMod',
     Sequence = 'PatchOperationSequence',
     Add = 'PatchOperationAdd',
+    Test = 'PatchOperationTest',
 }
 
 export const enum ElemTagName {

@@ -24,11 +24,18 @@ export function patchDOC(doc: Document) {
 }
 
 export function isUnpackablePatchOpFindMod(elem: Element) {
-    return (
-        utils.patch.isPatchOpOfType(elem, utils.patch.PatchOpType.FindMod) &&
-        !utils.dom.getChildByTagName(elem, utils.patch.ElemTagName.nomatch) &&
-        !isDescendantOfPatchOpFindMod(elem)
-    );
+    const isPatchOpFindMod = utils.patch.isPatchOpOfType(elem, utils.patch.PatchOpType.FindMod);
+
+    if (isPatchOpFindMod && !isDescendantOfPatchOpFindMod(elem) && elem.children.length === 2) {
+        const modsElem = utils.dom.getChildByTagName(elem, utils.patch.ElemTagName.mods);
+        const matchElem = utils.dom.getChildByTagName(elem, utils.patch.ElemTagName.match);
+
+        if (modsElem && matchElem) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function isDescendantOfPatchOpFindMod({ parentElement }: Element) {
@@ -61,17 +68,30 @@ function unpackPatchOpFindMod(elem: Element) {
 
 function isUnpackablePatchOpSeq(elem: Element, target: Element = elem) {
     const isPatchOpSeq = utils.patch.isPatchOpOfType(elem, utils.patch.PatchOpType.Sequence);
-    const isChildPatchOpsConversionRequired = target.tagName !== utils.patch.ElemTagName.li;
-    let canConvertChildPatchOps = isTopPatchOp(target);
-    if (isChildPatchOpsConversionRequired && canConvertChildPatchOps) {
+
+    if (isPatchOpSeq) {
         const opsElem = utils.dom.getChildByTagName(elem, utils.patch.ElemTagName.operations);
 
-        if (opsElem && utils.dom.someChildHasAnyAttr(opsElem, 'MayRequire', 'MayRequireAnyOf')) {
-            canConvertChildPatchOps = false;
+        if (
+            opsElem &&
+            ![...opsElem.children].some((op) =>
+                utils.patch.isPatchOpOfType(op, utils.patch.PatchOpType.Test),
+            )
+        ) {
+            const isDirectlyNestedInPatchOpSeq =
+                target.parentElement?.parentElement?.getAttribute('Class') ===
+                utils.patch.PatchOpType.Sequence;
+            const canBeUnpackedAsTopPatchOp =
+                isTopPatchOp(target) &&
+                !utils.dom.someChildHasAnyAttr(opsElem, 'MayRequire', 'MayRequireAnyOf');
+
+            if (isDirectlyNestedInPatchOpSeq || canBeUnpackedAsTopPatchOp) {
+                return true;
+            }
         }
     }
 
-    return isPatchOpSeq && (canConvertChildPatchOps || isChildPatchOpsConversionRequired === false);
+    return false;
 }
 
 function isTopPatchOp({ tagName, parentElement, ownerDocument }: Element) {
