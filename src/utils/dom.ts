@@ -19,6 +19,9 @@ export const enum NodeFilter {
     SHOW_NOTATION = 2048,
 }
 
+/**
+ * Only safe for reading.
+ */
 export function traverseElemTree(root: Element, cb: (elem: Element) => void) {
     for (const child of root.children) {
         traverseElemTree(child, cb);

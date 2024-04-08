@@ -11,9 +11,37 @@
 				<mods>
 					<li>Bar</li>
 				</mods>
-				<match Class='PatchOp'>
+				<match Class="PatchOp">
 					foobar
 				</match>
+			</match>
+		</Operation>
+
+		<Operation Class="PatchOperationFindMod">
+			<mods>
+				<li>Foo</li>
+			</mods>
+			<match Class="PatchOperationSequence">
+				<operations>
+
+					<li Class="PatchOp">
+						foobar
+					</li>
+
+					<li Class="PatchOperationFindMod">
+						<mods>
+							<li>Bar</li>
+						</mods>
+						<match Class="PatchOp">
+							foobar
+						</match>
+					</li>
+
+					<li Class="PatchOp">
+						foobar
+					</li>
+
+				</operations>
 			</match>
 		</Operation>
 
@@ -28,6 +56,23 @@
 			<match Class="PatchOp">
 				foobar
 			</match>
+		</Operation>
+
+		<Operation Class="PatchOp">
+			foobar
+		</Operation>
+
+		<Operation Class="PatchOperationFindMod">
+			<mods>
+				<li>Bar</li>
+			</mods>
+			<match Class="PatchOp">
+				foobar
+			</match>
+		</Operation>
+
+		<Operation Class="PatchOp">
+			foobar
 		</Operation>
 
 	</Patch>

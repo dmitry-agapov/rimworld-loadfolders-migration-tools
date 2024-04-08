@@ -13,30 +13,81 @@ import process from 'node:process';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
+interface ProgramOptions {
+    writeDiffsToDir?: string;
+    interactive: boolean;
+    silent: boolean;
+}
+
 commander.program
     .argument('[string]', 'Original files directory path.')
     .argument('[string]', 'Reference files directory path.')
-    .action(async (origFilesDirPath?: string, refFilesDirPath?: string) => {
-        if (origFilesDirPath && refFilesDirPath) {
-            await compareDirs(origFilesDirPath, refFilesDirPath);
-        } else {
-            const testFilePaths = await utils.fs.getXMLFileSubPaths(relPath('tests'));
-
-            for (const testFilePath of testFilePaths) {
-                await testFile(testFilePath);
+    .option('--write-diffs-to-dir <string>', 'Write diffs to directory.')
+    .option('-i --interactive', 'Interactive mode.', false)
+    .option('-s --silent', 'Silent mode.', false)
+    .action(
+        async (
+            origFilesDirPath: string | undefined,
+            refFilesDirPath: string | undefined,
+            options: ProgramOptions,
+        ) => {
+            if (origFilesDirPath && refFilesDirPath) {
+                await compareDirs(origFilesDirPath, refFilesDirPath, options);
+            } else {
+                await runPrimaryTests();
             }
-        }
 
-        console.log('Done!');
-    })
+            console.log('Done!');
+        },
+    )
     .parseAsync();
+
+async function runPrimaryTests() {
+    test('Elements tree is traversed in correct order.', () => {
+        const dom = new jsdom.JSDOM(
+            `
+			<e_7>
+			  <e_2>
+			    <e_1/>
+			  </e_2>
+			  <e_6>
+			    <e_3/>
+			    <e_5>
+			      <e_4/>
+			    </e_5>
+			  </e_6>
+			</e_7>`,
+            { contentType: 'text/xml' },
+        );
+        const root = dom.window.document.documentElement;
+        const visitedElements: string[] = [];
+
+        patcher.patchTree(root, (elem) => {
+            visitedElements.push(elem.tagName);
+
+            return undefined;
+        });
+
+        assert.equal(visitedElements.join(','), 'e_1,e_2,e_3,e_4,e_5,e_6,e_7');
+    });
+
+    const testFilePaths = await utils.fs.getXMLFileSubPaths(relPath('tests'));
+
+    for (const testFilePath of testFilePaths) {
+        await testFile(testFilePath);
+    }
+}
 
 /**
  * The main intent here is to test whether the new version of the patcher produces the same result as the previous one.
  *
  * If it is not, then this probably means that the previous version of patcher was bugged in some way and we need to repatch our files using the new version of the patcher.
  */
-async function compareDirs(origFilesDirPath: string, refFilesDirPath: string) {
+async function compareDirs(
+    origFilesDirPath: string,
+    refFilesDirPath: string,
+    options: ProgramOptions,
+) {
     const refDirFilePaths = await utils.fs.getXMLFileSubPaths(refFilesDirPath, true);
     const logProgress = ProgressLogger.createProgressLogger('Comparing', refDirFilePaths.length);
     const fails: string[] = [];
@@ -59,13 +110,35 @@ async function compareDirs(origFilesDirPath: string, refFilesDirPath: string) {
             // We do not normalize EOL of ref file because doing so could produce false positive results
             assert.equal(patchedOrigFile, refFile);
         } catch (error) {
-            logTestFail(origFileSubPath, error);
-
             fails.push(origFileSubPath);
 
-            process.stdout.write('Press ENTER to continue...');
+            if (options.writeDiffsToDir) {
+                await utils.fs.writeFileRecursive(
+                    path.join(options.writeDiffsToDir, origFileSubPath + '.diff'),
+                    diffJs.createTwoFilesPatch(
+                        origFileSubPath,
+                        'patched',
+                        refFile,
+                        patchedOrigFile,
+                        undefined,
+                        undefined,
+                        {
+                            context: Infinity,
+                            newlineIsToken: true,
+                        },
+                    ),
+                );
+            } else if (!options.silent) {
+                logTestFail(origFileSubPath, error);
 
-            await new Promise((resolve) => process.stdin.once('data', resolve));
+                if (options.interactive) {
+                    process.stdout.write('Press ENTER to continue...');
+
+                    process.stdin.resume();
+                    await new Promise((resolve) => process.stdin.once('data', resolve));
+                    process.stdin.pause();
+                }
+            }
         }
     }
 

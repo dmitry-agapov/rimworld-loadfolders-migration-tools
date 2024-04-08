@@ -10,16 +10,18 @@ export function patchXML(xml: string): string {
 }
 
 export function patchDOC(doc: Document) {
-    utils.dom.traverseElemTree(doc.documentElement, (elem) => {
-        // Unpack all unnecessary 'PatchOperationSequence'.
+    patchTree(doc.documentElement, (elem) => {
+        // Unpack all redundant 'PatchOperationSequence'.
         if (isUnpackablePatchOpSeq(elem)) {
-            unpackPatchOpSeq(elem);
+            return unpackPatchOpSeq(elem);
         }
 
         // Unpack all top 'PatchOperationFindMod'.
         if (isUnpackablePatchOpFindMod(elem)) {
-            unpackPatchOpFindMod(elem);
+            return unpackPatchOpFindMod(elem);
         }
+
+        return undefined;
     });
 }
 
@@ -58,11 +60,11 @@ function unpackPatchOpFindMod(elem: Element) {
     }
 
     if (isUnpackablePatchOpSeq(matchElem, elem)) {
-        unpackPatchOpSeq(matchElem, elem);
+        return unpackPatchOpSeq(matchElem, elem);
     } else {
         utils.dom.subtractIndent(matchElem, 1);
 
-        elem.replaceWith(utils.dom.changeElemTagName(matchElem, elem.tagName));
+        return utils.dom.changeElemTagName(matchElem, elem.tagName);
     }
 }
 
@@ -115,7 +117,7 @@ function unpackPatchOpSeq(elem: Element, target: Element = elem) {
     utils.dom.trimElemContent(opsElem);
     utils.dom.subtractIndent(opsElem, getRelElemDepth(target, opsElem) + 1);
 
-    target.replaceWith(...opsElem.childNodes);
+    return opsElem.childNodes;
 }
 
 function getRelElemDepth(elem1: Element, elem2: Element, depth = 0): number {
@@ -124,4 +126,47 @@ function getRelElemDepth(elem1: Element, elem2: Element, depth = 0): number {
     }
 
     return getRelElemDepth(elem1, elem2.parentElement, depth + 1);
+}
+
+/**
+ * Algorithm:
+ * 1. Traverse tree from bottom to top.
+ * 2. Call callback on each element.
+ * 3. Replace element with the result (if there is any).
+ *
+ * From each element we can safely:
+ * - Read: up/down
+ * - Write: down
+ *
+ * Example elements visiting order:
+ * ```xml
+ * <e_7>
+ *   <e_2>
+ *     <e_1/>
+ *   </e_2>
+ *   <e_6>
+ *     <e_3/>
+ *     <e_5>
+ *       <e_4/>
+ *     </e_5>
+ *   </e_6>
+ * </e_7>
+ * ```
+ */
+export function patchTree(root: Element, cb: (elem: Element) => Node | Iterable<Node> | undefined) {
+    // Conversion to array prevents us from visiting the same element more than once.
+    // Because HTMLCollection is "live" and array is not and we are mutating the collection.
+    for (const child of [...root.children]) {
+        patchTree(child, cb);
+    }
+
+    const replacement = cb(root);
+
+    if (replacement) {
+        if (Symbol.iterator in replacement) {
+            root.replaceWith(...replacement);
+        } else {
+            root.replaceWith(replacement);
+        }
+    }
 }
