@@ -86,12 +86,12 @@ export function trimElemContent({ firstChild, lastChild, TEXT_NODE }: Element) {
         lastChild.nodeValue = lastChild.nodeValue.trimEnd();
     }
 }
-export function subtractIndent(elem: Element, amount = 0) {
-    if (amount === 0) {
+export function shiftElemContentLeft(elem: Element, amount: number) {
+    if (amount <= 0) {
         return;
     }
 
-    const substrToSubtract = '\t'.repeat(amount);
+    const pattern = new RegExp(`\n\t{1,${amount}}`, 'g');
     const nodeIterator = elem.ownerDocument.createNodeIterator(
         elem,
         NodeFilter.SHOW_TEXT + NodeFilter.SHOW_COMMENT,
@@ -103,9 +103,7 @@ export function subtractIndent(elem: Element, amount = 0) {
             continue;
         }
 
-        currentNode.nodeValue = strUtils.mapLines(currentNode.nodeValue, (line, i) =>
-            i > 0 ? line.replace(substrToSubtract, '') : line,
-        );
+        currentNode.nodeValue = currentNode.nodeValue.replaceAll(pattern, '\n');
     }
 }
 

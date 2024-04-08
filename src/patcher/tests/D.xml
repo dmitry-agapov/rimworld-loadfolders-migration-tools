@@ -20,7 +20,7 @@
 					<li Class="PatchOp">
 						<!-- 
 							Comment -->
-						<foo> 			foo
+						<foo>			foo
 							bar
 							baz </foo>
 					</li>
@@ -41,7 +41,7 @@
 		<Operation Class="PatchOp">
 			<!-- 
 				Comment -->
-			<foo> 			foo
+			<foo>			foo
 				bar
 				baz </foo>
 		</Operation>

@@ -105,7 +105,7 @@ function unpackPatchOpAdd(elem: Element) {
     }
 
     utils.dom.trimElemContent(valueElem);
-    utils.dom.subtractIndent(valueElem, 2);
+    utils.dom.shiftElemContentLeft(valueElem, 2);
 
     elem.replaceWith(...valueElem.childNodes);
 }

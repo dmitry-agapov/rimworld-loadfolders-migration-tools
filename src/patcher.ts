@@ -62,7 +62,7 @@ function unpackPatchOpFindMod(elem: Element) {
     if (isUnpackablePatchOpSeq(matchElem, elem)) {
         return unpackPatchOpSeq(matchElem, elem);
     } else {
-        utils.dom.subtractIndent(matchElem, 1);
+        utils.dom.shiftElemContentLeft(matchElem, 1);
 
         return utils.dom.changeElemTagName(matchElem, elem.tagName);
     }
@@ -115,7 +115,7 @@ function unpackPatchOpSeq(elem: Element, target: Element = elem) {
     }
 
     utils.dom.trimElemContent(opsElem);
-    utils.dom.subtractIndent(opsElem, getRelElemDepth(target, opsElem) + 1);
+    utils.dom.shiftElemContentLeft(opsElem, getRelElemDepth(target, opsElem) + 1);
 
     return opsElem.childNodes;
 }
