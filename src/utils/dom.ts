@@ -1,5 +1,3 @@
-import * as strUtils from './string.js';
-
 export const enum NodeFilter {
     FILTER_ACCEPT = 1,
     FILTER_REJECT = 2,
