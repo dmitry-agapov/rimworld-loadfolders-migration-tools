@@ -20,10 +20,7 @@ commander.program
             const file = await fs.readFile(fileSrcPath, 'utf-8');
             const dom = new jsdom.JSDOM(file, { contentType: 'text/xml' });
             const root = dom.window.document.documentElement;
-            const patchOps = utils.dom.getChildrenByTagName(
-                root,
-                utils.patch.ElemTagName.Operation,
-            );
+            const patchOps = root.children;
             let foundPatchOpAddDef = false;
             let foundOtherPatchOp = false;
 
@@ -32,6 +29,12 @@ commander.program
             }
 
             for (const patchOp of patchOps) {
+                if (foundPatchOpAddDef && foundOtherPatchOp) {
+                    mixedFileSubPaths.push(fileSubPath);
+
+                    break;
+                }
+
                 if (isPatchOpAddDef(patchOp)) {
                     foundPatchOpAddDef = true;
                 } else {
@@ -39,17 +42,14 @@ commander.program
                 }
             }
 
-            if (foundPatchOpAddDef) {
-                if (!foundOtherPatchOp) {
-                    const [subDirName, , ...rest] = fileSubPath.split(path.sep);
-                    const fileDestPath = path.join(srcDirPath, subDirName!, 'Defs', ...rest);
+            if (foundPatchOpAddDef && !foundOtherPatchOp) {
+                const [subDirName, , ...rest] = fileSubPath.split(path.sep);
+                const fileDestPath = path.join(srcDirPath, subDirName!, 'Defs', ...rest);
+                const file = toDefsFile(dom);
 
-                    await extractDefsToFile(fileDestPath, dom);
+                await utils.fs.writeFileRecursive(fileDestPath, file, { flag: 'wx' });
 
-                    await fs.rm(fileSrcPath, { recursive: true });
-                } else {
-                    mixedFileSubPaths.push(fileSubPath);
-                }
+                await fs.rm(fileSrcPath, { recursive: true });
             }
         }
 
@@ -71,24 +71,24 @@ commander.program
 
 function isPatchOpAddDef(elem: Element) {
     const xpathElem = utils.dom.getChildByTagName(elem, utils.patch.ElemTagName.xpath);
+    const valueElem = utils.dom.getChildByTagName(elem, utils.patch.ElemTagName.value);
 
     return (
         utils.patch.isPatchOpOfType(elem, utils.patch.PatchOpType.Add) &&
-        xpathElem?.textContent?.trim() === 'Defs'
+        xpathElem?.textContent?.trim() === 'Defs' &&
+        valueElem
     );
 }
 
-async function extractDefsToFile(filePath: string, dom: jsdom.JSDOM) {
+function toDefsFile(dom: jsdom.JSDOM) {
     toDefsDoc(dom.window.document);
 
-    const file = utils.xml.toXMLFile(dom.serialize());
-
-    await utils.fs.writeFileRecursive(filePath, file, { flag: 'wx' });
+    return utils.xml.toXMLFile(dom.serialize());
 }
 
 function toDefsDoc(doc: Document) {
     const root = doc.documentElement;
-    const patchOps = utils.dom.getChildrenByTagName(root, utils.patch.ElemTagName.Operation);
+    const patchOps = [...root.children];
 
     for (const patchOp of patchOps) {
         unpackPatchOpAdd(patchOp);
